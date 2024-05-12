@@ -1,0 +1,16 @@
+thesis/*.aux
+thesis/*.acn
+thesis/*.acr
+thesis/*.alg
+thesis/*.bbl
+thesis/*.bcf
+thesis/*.blg
+thesis/*.glsdefs
+thesis/*.ist
+thesis/*.lof
+thesis/*.log
+thesis/*.lot
+thesis/*.out
+thesis/*.run.xml
+thesis/*.synctex.gz
+thesis/*.toc

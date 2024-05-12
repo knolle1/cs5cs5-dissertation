@@ -1,0 +1,27 @@
+\chapter{Introduction}
+
+Despite rising costs and the climate-crisis, driving continues to be one of the most popular modes of transportation. One major problem with the high traffic demands is traffic congestion. The \cite{TomTom_2023} Traffic Index has shown that a majority of global cities have seen a rise in travel times in 2023 compared to the previous year, especially during peak hours. Not only does traffic congestion lead to an increase in travel times, but it is also associated with increased greenhouse gas emissions and air pollution \parencite{DoT_2023}, which in turn are linked to health risks such as cardiovascular and respiratory diseases \parencite{WHO_2022}. 
+
+In order to curb these issues, effective traffic management is needed. This can be achieved for example by using traffic lights to control the flow of traffic. However, inefficient traffic light cycles can worsen congestion, for example through cross-blocking (when the downstream lane is full so that a vehicle cannot cross the intersection) or green-idling (when a green signal is active even though there are no vehicles crossing in that direction) \parencite{Rasheed_2020}. 
+
+One promising approach to dynamically optimising traffic light cycles is \gls{rl} because no prior assumptions about the systems are required \parencite{Liu_2023}. Most research in utilising \gls{rl} for traffic light control is based on \gls{dqn} \parencite{Rasheed_2020}, which uses \gls{sgd} for optimisation \parencite{Mnih_2015}. \gls{sgd} and \gls{sgd}-based algorithms assume stationary \gls{iid} data distributions \parencite{Khetarpal_2022}. However, the environment in traffic control can be considered non-stationary because, for example, the distribution of traffic demand varies over time (higher demand during rush hours etc.). Blindly applying these approaches in non-stationary settings can lead to biased optimisations and catastrophic forgetting \parencite{Khetarpal_2022}. It is therefore important to approach traffic control with \gls{cl}, an \gls{rl} paradigm that takes non-stationarity into account.
+
+CL agents need to be able to adapt quickly to changes in the environment \parencite{Khetarpal_2022}. \gls{dqn} is an off-policy algorithm \parencite{Mnih_2015}, which have more variance and converge slower than on-policy methods \parencite{SuttonBarto_2018}. An on-policy algorithm such as PPO \parencite{Schulman_2017} may therefore be more suited for traffic control problems.
+
+
+\section{Research Objectives}
+Research Question
+
+Can Proximal Policy Optimization (PPO) and experience replay be combined for effective learning in a continual learning environment?
+
+Understand behaviour of PPO agents in continual learning environments
+
+Investigate whether experience replay can be used to mitigate problems such as catastrophic forgetting
+
+Propose and evaluate possible improvements
+
+\section{Methodology}
+Introduce how these objectives will be achieved
+
+\section{Dissertation Structure}
+Overview of diffrerent chapters

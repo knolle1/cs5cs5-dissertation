@@ -1,0 +1,216 @@
+%\documentclass[twoside,a4paper,11pt]{book}
+\documentclass[a4paper,11pt,oneside]{book}
+
+%----------------------------------------------------------------------------------------
+%	README!
+%   Welcome. It's worth having a read through this file
+%   to set up the broad parameters, such as the name of
+%   the degree, the school/department, the type of work
+%   (dissertation/Final Year Project/report, etc. as well
+%   as your own details.
+%----------------------------------------------------------------------------------------
+
+%----------------------------------------------------------------------------------------
+%	COVER PAGE
+%   The cover page is laid out in title/title.tex. You can choose a colour
+%   or black and white logo
+%----------------------------------------------------------------------------------------
+
+%----------------------------------------------------------------------------------------
+%	THESIS INFORMATION
+%   Put title, author name, supervisor name, degree, type of work, school, department in here
+%   It will be used for the title page and for the embedded PDF information
+%----------------------------------------------------------------------------------------
+
+\newcommand{\thesistitle}{Evaluation of Proximal Policy Optimisation in Continual Reinforcement Learning} % Your thesis title, this is used in the title and abstract
+\newcommand{\CSE}{M.Sc. Computer Science (Data Science)} % Replace with your degree name, this is used in the title page and abstract
+\newcommand{\typeofthesis}{dissertation} % dissertation, Final Year Project, report, etc.
+\newcommand{\authorname}{Kim Nia Nolle} % Your name, this is used in the title page and PDF stuff
+%% Do not put your Student ID in the document, as TCD will not publish
+%% documents that contain both your name and your Student ID.
+\newcommand{\supervisor}{Prof. Vinny Cahill} % replace with the name of your supervisor
+\newcommand{\cosupervisor}{Wenlong Wang} % replace with the name of your co-supervisor if you have one
+\newcommand{\keywords}{this, that, more} % Replace with keywords for your thesis
+\newcommand{\school}{\href{https://www.tcd.ie/scss/}{School of Computer Science and Statistics}} % Your school's name and URL, this is used in the title page
+%Edited by HS for engineering
+
+%% Comment out the next line if you don't want a department to appear
+%\newcommand{\department}{\href{http://researchgroup.university.com}{Department Name}} % Your research group's name and URL, this is used in the title page
+
+
+%% Language and font encodings
+\usepackage[T1]{fontenc} 
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+%% Bibliographical stuff
+%\usepackage[]{cite}
+%% Document size
+% include showframe as an option if you want to see the boxes
+\usepackage[a4paper,top=2.54cm,bottom=2.54cm,left=3cm,right=3cm,headheight=16pt]{geometry}
+\setlength{\marginparwidth}{2cm}
+%% Useful packages
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
+\usepackage[pdftex]{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage[colorlinks=true, allcolors=black]{hyperref}
+\usepackage{hyperxmp}
+\usepackage{caption} % if no caption, no colon
+\usepackage{sfmath} %use sans-serif in the maths sections too
+\usepackage[parfill]{parskip}    % Begin paragraphs with an empty line rather than an indent
+\usepackage{setspace} % to permit one-and-a-half or double spacing
+\usepackage{enumerate} % fancy enumerations like (i) (ii) or (a) (b) and suchlike
+\usepackage{booktabs} % To thicken table lines
+\usepackage{fancyhdr}
+\usepackage{xcolor} % to get TCD colour on headings
+\numberwithin{equation}{chapter} %HS edit for (chapter.equation)
+\pagestyle{plain} % Embrace simplicity!
+%\usepackage{hyperref}
+\usepackage{float}
+
+\usepackage[acronym,nomain,automake]{glossaries}
+\makeglossaries
+
+\definecolor{tcd_blue}{RGB}{5, 105, 185}
+
+%% It's personal taste but...
+%% Uncomment the following block if you want your name and ID at the top of
+%% (almost) every page.
+%\fancyhf{} % sets both header and footer to nothing
+%\renewcommand{\headrulewidth}{0pt}
+%\cfoot{\thepage}
+%\ifdefined\authorid
+%\chead{\it \authorname\ (\authorid)}
+%\else
+%\chead{\it \authorname}
+%\fi
+%% End of block
+
+%% It is good practise to make your font sans-serif to improve the accessibility of your document.  Comment out the following line to disable it (but you really should not)
+\renewcommand{\familydefault}{\sfdefault} %use the sans-serif font as default
+
+%% If you insist on not using sans-serif (please don't), consider using Palatino instead of the LaTeX standard
+%\usepackage{mathpazo} % Use the Palatino font by default if you prefer it to Computer Modern
+
+
+%% Format Chapter headings appropriately
+\usepackage{titlesec}
+\titleformat{\chapter}[hang]{\normalfont\Huge\bfseries\color{tcd_blue}}{\thechapter.}{0.5em}{}{}
+\titlespacing{\chapter}
+{0pt} %left of the label + title
+{*0} % vertical space before the title
+{*6.5} % idem after title (in ex units + glue)
+
+\title{\thesistitle}
+\author{\authorname}
+
+
+\hypersetup{
+   pdftitle=\thesistitle, % Set the PDF's title to your title
+   pdfauthor=\authorname, % Set the PDF's author to your name
+   pdfkeywords=\keywords, % Set the PDF's keywords to your keywords
+   pdfsubject=\CSE, % Set the PDF's keywords to your keywords
+   pdfinfo={
+     pdfsupervisor=\supervisor, % Set the PDF's supervisor to your supervisor
+     pdfcosupervisor=\cosupervisor, % Set the PDF's cosupervisor to your cosupervisor if using
+   }
+}
+
+%% Imports the biblatex package
+\usepackage[
+backend=biber,
+style=authoryear,
+%sorting=none
+]{biblatex}
+
+%% Imports the bibliography file "bibFile.bib" containing the sources of the citations
+\bibliography{bibs}
+
+%\frontmatter
+
+
+\begin{document}
+\date{August 31, 2024}
+%\dominitoc[n]               % generate minitocs for every chapter
+\pagenumbering{Roman}       % set page numbers to roman style
+
+\include{title/title}             % title page with subject and print date
+\linespread{1.2}            % line spacing factor -> causes trouble with minitoc!
+%\noitemsep % conflicts with enumitem
+%\setlist[itemize]{noitemsep}
+%\setlist[enumerate]{noitemsep}
+%\setlist[description]{noitemsep}
+
+\setcounter{page}{1}   % modify start value (for book-version only)
+\include{declaration}
+\include{abstract}
+\include{acknowledgment}
+\include{abbreviations}
+\include{lists}
+
+\cleardoublepage            % for correct page numbering / margin
+\pagenumbering{arabic}      % reset page numbers to arabic style
+
+
+% \chapter*{Abstract}
+% A short summary of the problem investigated, the approach taken and the key findings. This should not be more that around 400 words.
+
+
+% This must be on a separate page.
+
+% \chapter*{Lay Abstract}
+% Similar to the actual abstract in terms of the information, but written for a non-specialist. So no jargon, no acronyms. Explain to a member of the general public what this project entailed. Should be no longer than the actual abstract.
+
+
+%This must be on a separate page.
+
+%\newpage
+\onehalfspacing%\raggedright %\raggedright turns off justification and hyphenation
+
+% \section*{\Huge\textcolor{tcd_blue}{Acknowledgements}}
+% Thanks Everyone!
+
+% You should acknowledge any help that you have received (for example from technical staff), or input provided by, for example, a company.
+% \tableofcontents
+% \listoffigures
+% \listoftables
+% \newpage
+% \section*{\Huge\textcolor{tcd_blue}{Nomenclature}}
+% \begin{tabular}{lp{9cm}l}
+% A&Area of the wing&$m^{2}$\\
+% B\\
+% C& Roman letters first, with capitals\ldots\\
+% a&then lower case.\\
+% b\\
+% c\\
+% $\Gamma$&Followed by Greek capitals\ldots\\
+% $\alpha$&then lower case greek symbols.\\
+% $\beta$\\
+% $\epsilon$\\
+% TLA&Finally, three letter acronyms and other abbreviations arranged alphabetically\\
+% \end{tabular}
+% \vspace{2cm}
+
+% If a parameter has a typical unit that is used throughout your report, then it should be included here on the right hand side.
+
+% If you have a very mathematical report, then you may wish to divide the nomenclature list into functions and variables, and then sub- and super-scripts.
+
+% If you have a large number of acronyms, check out \href{https://www.overleaf.com/learn/latex/Glossaries} to make that more robust.
+
+% Note that Roman mathematical symbols are typically in a serif font in italics.
+\glsresetall
+\include{01_Introduction}
+\include{02_StateOfTheArt}
+\include{03_Methodology}
+\include{04_Implementation}
+\include{05_Evaluation}
+\include{06_Conclusion}
+
+\addcontentsline{toc}{chapter}{References}
+\printbibliography[title={References}]
+
+\appendix
+
+\end{document}
