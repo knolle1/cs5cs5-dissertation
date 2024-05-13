@@ -9,7 +9,7 @@ Created on Sun May 12 13:39:30 2024
 
 import gymnasium as gym
 import highway_env
-#highway_env.register_highway_envs()
+highway_env.register_highway_envs()
 
 import matplotlib.pyplot as plt
 
@@ -19,7 +19,9 @@ obs, info = env.reset()
 obs, reward, terminated, truncated, info = env.step(env.action_space.sample())
 
 for i in range(10):
+    print(i)
     obs, info = env.reset()
     fig, ax = plt.subplots()
     ax.imshow(env.render())
     ax.axis('off')
+    fig.show()
