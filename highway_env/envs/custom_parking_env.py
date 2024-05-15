@@ -108,6 +108,8 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
                 "vehicles_count": 50,
                 "add_walls": True,
                 "parking_angles" : [0, 0],
+                "fixed_goal" : None,
+                "reward_p" : 0.5,
             }
         )
         return config
@@ -138,7 +140,7 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
         self._create_road()
         self._create_vehicles()
 
-    def _create_road(self, spots: int = 14) -> None:
+    def _create_road(self, spots: int = 10) -> None:
         """
         Create a road composed of straight adjacent lanes at angles specified in config.
         Angle of 0 means vertical parking spaces.
@@ -146,31 +148,50 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
         :param spots: number of spots in the parking
         """
         # Parking space parameters
-        #angle = [-30, 0]
-        net = RoadNetwork()
         width = 4.0
         length = 8
         lt = (LineType.CONTINUOUS, LineType.CONTINUOUS)
         nodes = [["a", "b"], ["b", "c"]]
         
-        for row in range(2):
-            
-            alpha = (-1) ** row * self.config["parking_angles"][row] * np.pi / 180
-            delta_x = np.sin(alpha) * length # difference for end point of diagonal lanes
-            x_offset = width * (1 - np.cos(alpha)) / np.cos(alpha) / 2 # offset between spaces so they align
-            y_offset = 10
+        net = RoadNetwork()
         
-            for k in range(spots):
-                    x = (k + 1 - spots // 2) * (width + x_offset) - (width + delta_x) / 2
+        for row in range(2):
+            alpha = (-1) ** row * self.config["parking_angles"][row] * np.pi / 180
+            
+            if abs(self.config["parking_angles"][row] <= 50):
+                delta_x = np.sin(alpha) * length # difference for end point of diagonal lanes
+                x_offset = width * (1 - np.cos(alpha)) / np.cos(alpha) / 2 # offset between spaces so they align
+                y_offset = 10
+                
+                spots = int(75 / (width + x_offset))
+            
+                for k in range(spots):
+                    x = (k - spots // 2) * (width + x_offset) + (width) / 2
+                    if alpha > 0:
+                        x -= delta_x
                     net.add_lane(
                         *nodes[0],
                         StraightLane(
                             [x, (-1) ** row * -y_offset], 
                             [x + delta_x, (-1) ** row * -(y_offset + length)], 
                             width=width, line_types=lt
-                        ),
-                    )
-
+                            ),
+                        )
+            else:
+                x_offset = 0
+                y_offset = 10
+                
+                spots = int(80 / (length))
+                
+                for k in range(spots):
+                    x = (k - spots // 2) * (length + x_offset) + (spots%2) * length / 2
+                    net.add_lane(
+                        *nodes[0], 
+                        StraightLane(
+                            [x, (-1) ** row * -y_offset], 
+                            [x + length, (-1) ** row * -y_offset],
+                            width=width, line_types=lt))
+                       
         self.road = Road(
             network=net,
             np_random=self.np_random,
@@ -195,7 +216,11 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
 
         # Goal
         for vehicle in self.controlled_vehicles:
-            lane_index = empty_spots[self.np_random.choice(np.arange(len(empty_spots)))]
+            if self.config["fixed_goal"] == None:
+                lane_index = empty_spots[self.np_random.choice(np.arange(len(empty_spots)))] # Pick random goal
+            else:
+                lane_index = empty_spots[self.config["fixed_goal"]]
+                
             lane = self.road.network.get_lane(lane_index)
             vehicle.goal = Landmark(
                 self.road, lane.position(lane.length / 2, 0), heading=lane.heading
@@ -249,7 +274,7 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
                 np.abs(achieved_goal - desired_goal),
                 np.array(self.config["reward_weights"]),
             ),
-            p,
+            self.config["reward_p"],
         )
 
     def _reward(self, action: np.ndarray) -> float:
