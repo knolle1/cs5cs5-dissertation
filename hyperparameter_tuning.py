@@ -41,7 +41,7 @@ sweep_configuration = {
     }
 
 param_id = 0
-for ppo_params in ParameterSampler(sweep_configuration, n_iter=5):
+for ppo_params in ParameterSampler(sweep_configuration, n_iter=25):
 
     df_params = pd.DataFrame(ppo_params, index=[param_id])
     
@@ -65,4 +65,4 @@ for ppo_params in ParameterSampler(sweep_configuration, n_iter=5):
     path = f"./results/hyperparameter_tuning/results.csv"
     df_params.to_csv(path, mode='a', header=not os.path.exists(path))
         
-    #param_id += 1
+    param_id += 1
