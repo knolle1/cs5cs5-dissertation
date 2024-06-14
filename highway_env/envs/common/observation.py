@@ -557,6 +557,40 @@ class KinematicsGoalObservation(KinematicObservation):
             ]
         )
         return obs
+    
+class CustomKinematicsGoalObservation(KinematicObservation):
+    def __init__(self, env: "AbstractEnv", scales: List[float], **kwargs: dict) -> None:
+        self.scales = np.array(scales)
+        super().__init__(env, **kwargs)
+
+    def space(self) -> spaces.Space:
+        try:
+            obs = self.observe()
+            return spaces.Box(
+                        -np.inf,
+                        np.inf,
+                        shape=obs.shape,
+                        dtype=np.float64,
+                    )
+        except AttributeError:
+            return spaces.Space()
+
+    def observe(self) -> Dict[str, np.ndarray]:
+        if not self.observer_vehicle:
+            return np.zeros((len(self.features)*2,))
+
+        obs = np.ravel(
+            pd.DataFrame.from_records([self.observer_vehicle.to_dict()])[self.features]
+        )
+        goal = np.ravel(
+            pd.DataFrame.from_records([self.observer_vehicle.goal.to_dict()])[
+                self.features
+            ]
+        )
+        
+        # Concatenate observation and goal into an observation
+        obs = np.concatenate([obs / self.scales, goal / self.scales])
+        return obs
 
 
 class AttributesObservation(ObservationType):
@@ -780,6 +814,8 @@ def observation_factory(env: "AbstractEnv", config: dict) -> ObservationType:
         return OccupancyGridObservation(env, **config)
     elif config["type"] == "KinematicsGoal":
         return KinematicsGoalObservation(env, **config)
+    elif config["type"] == "CustomKinematicsGoal":
+        return CustomKinematicsGoalObservation(env, **config)
     elif config["type"] == "GrayscaleObservation":
         return GrayscaleObservation(env, **config)
     elif config["type"] == "AttributesObservation":

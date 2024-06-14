@@ -6,6 +6,8 @@ import numpy as np
 from highway_env.road.lane import AbstractLane, LineType, StraightLane, lane_from_config
 from highway_env.vehicle.objects import Landmark
 
+from line_profiler import profile
+
 if TYPE_CHECKING:
     from highway_env.vehicle import kinematics, objects
 
@@ -456,11 +458,13 @@ class Road(object):
             vehicle, distance, count, see_behind, sort, vehicles_only=True
         )
 
+    @profile
     def act(self) -> None:
         """Decide the actions of each entity on the road."""
         for vehicle in self.vehicles:
             vehicle.act()
 
+    @profile
     def step(self, dt: float) -> None:
         """
         Step the dynamics of each entity on the road.
