@@ -25,7 +25,7 @@ env = gym.make('custom-parking-v0')
 env.configure({"parking_angles" : [0, 0],
                "fixed_goal" : 2})
 print("Running random_vertical")
-for i in range(2,5):
+for i in range(5):
     print(f"Run {i}")
     start_time = timer()
     random_rollout(1_000_000, env, "./results/random_vertical", run_id=i)
@@ -36,7 +36,7 @@ env = gym.make('custom-parking-v0')
 env.configure({"parking_angles" : [-25, 25],
                "fixed_goal" : 2})
 print("Running random_diagonal-25")
-for i in range(2,5):
+for i in range(5):
     print(f"Run {i}")
     start_time = timer()
     random_rollout(1_000_000, env, "./results/random_diagonal-25", run_id = i)
@@ -48,7 +48,7 @@ env = gym.make('custom-parking-v0')
 env.configure({"parking_angles" : [-50, 50],
                "fixed_goal" : 2})
 print("Running random_diagonal-50")
-for i in range(1,5):
+for i in range(5):
     print(f"Run {i}")
     start_time = timer()
     random_rollout(1_000_000, env, "./results/random_diagonal-50", run_id = i)
@@ -59,23 +59,20 @@ env = gym.make('custom-parking-v0')
 env.configure({"parking_angles" : [90, 90],
                "fixed_goal" : 2})
 print("Running random_parallel")
-for i in range(1,5):
+for i in range(5):
     print(f"Run {i}")
     start_time = timer()
     random_rollout(1_000_000, env, "./results/random_parallel", run_id = i)
     end_time = timer()
     print("Time elapsed: " + str(end_time - start_time) + " s")
-
-    
 """
-# Test vanilla PPO on parking environment
+
+# Test and tune parking environment using PPO
 # -----------------------------------------------------------------------------
-env_params = {"parking_angles" : [0, 0],
-              "fixed_goal" : 2}
 ppo_params = {"gamma" : 0.99,
               "lamb" : 0.95,
               "eps_clip" : 0.2,
-              "max_training_iter" : 1_000_000,
+              "max_training_iter" : 500_000,
               "K_epochs" : 10,
               "num_cells" : 64,
               "actor_lr" : 1e-4,
@@ -90,7 +87,17 @@ ppo_params = {"gamma" : 0.99,
               "cal_total_loss" : False,
               "max_grad_norm" : 0.5
               }
-experiment_params = {"output_dir" : "./results/eval_test_adj-weights_0.05_thresh_0.01",
+
+# Default environment
+env_params = {"parking_angles" : [0, 0],
+              "fixed_goal" : 2,
+              "collision_reward": -5,
+              "reward_p" : 0.5,
+              "collision_reward_factor" : 0,
+              "success_goal_reward" : 0.12,
+              "reward_weights": [1, 0.3, 0, 0, 0.02, 0.02]
+              }
+experiment_params = {"output_dir" : "./results/test_envs/0_default",
                      "baseline_dir" : "./results/random_vertical",
                      "eval_envs" : {"vertical" : {"parking_angles" : [0, 0],
                                                   "fixed_goal" : 2},
@@ -103,5 +110,121 @@ experiment_params = {"output_dir" : "./results/eval_test_adj-weights_0.05_thresh
                                     },
                      "render_eval" : True,
                      "plot" : True,
-                     "n_runs" : 1}
+                     "n_runs" : 3}
 train_eval.main(env_params, ppo_params, experiment_params)
+
+# Change to p=1
+env_params = {"parking_angles" : [0, 0],
+              "fixed_goal" : 2,
+              "collision_reward": -5,
+              "reward_p" : 1,
+              "collision_reward_factor" : 0,
+              "success_goal_reward" : 0.12,
+              "reward_weights": [1, 0.3, 0, 0, 0.02, 0.02]
+              }
+experiment_params["output_dir"] = "./results/test_envs/1_p-norm_1"
+train_eval.main(env_params, ppo_params, experiment_params)
+
+# Increase collision penalty
+env_params = {"parking_angles" : [0, 0],
+              "fixed_goal" : 2,
+              "collision_reward": -100,
+              "reward_p" : 1,
+              "collision_reward_factor" : 0,
+              "success_goal_reward" : 0.12,
+              "reward_weights": [1, 0.3, 0, 0, 0.02, 0.02]
+              }
+experiment_params["output_dir"] = "./results/test_envs/2_collision-reward_-100"
+train_eval.main(env_params, ppo_params, experiment_params)
+
+# Reduce success threshold
+env_params = {"parking_angles" : [0, 0],
+              "fixed_goal" : 2,
+              "collision_reward": -100,
+              "reward_p" : 1,
+              "collision_reward_factor" : 0,
+              "success_goal_reward" : 0.03,
+              "reward_weights": [1, 0.3, 0, 0, 0.02, 0.02]
+              }
+experiment_params["output_dir"] = "./results/test_envs/3_success-threshold_0.03"
+train_eval.main(env_params, ppo_params, experiment_params)
+
+# Increase weights of angle observations
+env_params = {"parking_angles" : [0, 0],
+              "fixed_goal" : 2,
+              "collision_reward": -100,
+              "reward_p" : 1,
+              "collision_reward_factor" : 0,
+              "success_goal_reward" : 0.03,
+              "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]
+              }
+experiment_params["output_dir"] = "./results/test_envs/4_angle-weights_0.05"
+train_eval.main(env_params, ppo_params, experiment_params)
+
+# Test tuned hyperparameters
+ppo_params = {"gamma" : 0.99,
+              "lamb" : 0.9,
+              "eps_clip" : 0.3,
+              "max_training_iter" : 500_000,
+              "K_epochs" : 10,
+              "num_cells" : 128,
+              "actor_lr" : 1e-4,
+              "critic_lr" : 1e-4,
+              "memory_size" : 2048,
+              "minibatch_size" : 32,
+              "c1" : 0.5,
+              "c2" : 0,
+              "kl_threshold" : 0.15,
+              "parameters_hardshare" : False,
+              "early_stop" : False,
+              "cal_total_loss" : False,
+              "max_grad_norm" : 1
+              }
+experiment_params["output_dir"] = "./results/test_envs/5_hyperparams"
+train_eval.main(env_params, ppo_params, experiment_params)
+
+# Redefine reward function
+
+"""
+# Test vanilla PPO on parking environment
+# -----------------------------------------------------------------------------
+env_params = {"parking_angles" : [0, 0],
+              "fixed_goal" : 2,
+              "collision_reward": -25,
+              "reward_p" : 0.5,
+              "collision_reward_factor" : 50,
+              }
+ppo_params = {"gamma" : 0.99,
+              "lamb" : 0.9,
+              "eps_clip" : 0.3,
+              "max_training_iter" : 500_000,
+              "K_epochs" : 10,
+              "num_cells" : 128,
+              "actor_lr" : 1e-4,
+              "critic_lr" : 1e-4,
+              "memory_size" : 2048,
+              "minibatch_size" : 32,
+              "c1" : 0.5,
+              "c2" : 0,
+              "kl_threshold" : 0.15,
+              "parameters_hardshare" : False,
+              "early_stop" : False,
+              "cal_total_loss" : False,
+              "max_grad_norm" : 1
+              }
+experiment_params = {"output_dir" : "./results/test_envs_1e-4_p-0.5_col-rwd--25",
+                     "baseline_dir" : "./results/random_vertical",
+                     "eval_envs" : {"vertical" : {"parking_angles" : [0, 0],
+                                                  "fixed_goal" : 2},
+                                    "diagonal-25" : {"parking_angles" : [-25, 25],
+                                                     "fixed_goal" : 2},
+                                    "diagonal-50" : {"parking_angles" : [-50, 50],
+                                                     "fixed_goal" : 2},
+                                    "parallel" : {"parking_angles" : [90, 90],
+                                                  "fixed_goal" : 2},
+                                    },
+                     "render_eval" : True,
+                     "plot" : True,
+                     "n_runs" : 5}
+train_eval.main(env_params, ppo_params, experiment_params)
+"""

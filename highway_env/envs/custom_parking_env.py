@@ -97,8 +97,8 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
                 },
                 "action": {"type": "CustomContinuousAction"},
                 "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05], #[1, 0.3, 0, 0, 0.02, 0.02],
-                "success_goal_reward": 0.01, #0.05, #0.12,
-                "collision_reward": -100, #-5,
+                "success_goal_reward": 0.03, #0.01, #0.05, #0.12,
+                "collision_reward": -10,#-100, #-5,
                 "steering_range": np.deg2rad(45),
                 "simulation_frequency": 15,
                 "policy_frequency": 5,
@@ -112,7 +112,8 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
                 "add_walls": True,
                 "parking_angles" : [0, 0],
                 "fixed_goal" : None,
-                "reward_p" : 1, #0.5,
+                "reward_p" : 0.5, #1, #0.5,
+                "collision_reward_factor" : 50,
             }
         )
         return config
@@ -300,17 +301,27 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
     def _reward(self, action: np.ndarray) -> float:
         obs = self.observation_type_parking.observe()
         obs = obs if isinstance(obs, tuple) else (obs,)
+        #reward = sum(
+        #    self.compute_reward(
+        #        agent_obs[:len(self.observation_type_parking.features)], # Achieved goal
+        #        agent_obs[len(self.observation_type_parking.features):], # Desired goal
+        #        {}
+        #    )
+        #    for agent_obs in obs
+        #)
+        #reward += self.config["collision_reward"] * sum(
+        #    v.crashed for v in self.controlled_vehicles
+        #)
+        
         reward = sum(
-            self.compute_reward(
+            (1 + self.config["collision_reward_factor"]*int(vehicle.crashed)) * self.compute_reward(
                 agent_obs[:len(self.observation_type_parking.features)], # Achieved goal
                 agent_obs[len(self.observation_type_parking.features):], # Desired goal
                 {}
-            )
-            for agent_obs in obs
+            ) + self.config["collision_reward"]*int(vehicle.crashed)
+            for agent_obs, vehicle in zip(obs, self.controlled_vehicles)
         )
-        reward += self.config["collision_reward"] * sum(
-            v.crashed for v in self.controlled_vehicles
-        )
+        
         return reward
 
     @profile
@@ -318,7 +329,7 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
         return (
             self.compute_reward(achieved_goal, desired_goal, {})
             > -self.config["success_goal_reward"]
-        ) and not self._is_crashed()
+        ) and not self._is_crashed() and any(vehicle.goal.hit for vehicle in self.controlled_vehicles)
 
     @profile
     def _is_terminated(self) -> bool:
