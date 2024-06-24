@@ -141,11 +141,18 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
             achieved = obs[:len(self.observation_type_parking.features)]
             goal = obs[len(self.observation_type_parking.features):]
             success = self._is_success(achieved, goal)
+            
+            test_success = (self.compute_reward(achieved, goal, {})
+                > -self.config["success_goal_reward"]
+            ) and not self._is_crashed()  and self._is_goal_hit()
         info.update({"is_success": success,
                      "is_crashed" : self._is_crashed(),
                      "achieved" : achieved,
                      "goal" : goal,
-                     "reward" : self.compute_reward(achieved, goal, {})})
+                     "reward" : self.compute_reward(achieved, goal, {}),
+                     "goal_hit" : self._is_goal_hit(),
+                     "test_success" : test_success
+                     })
         return info
 
     @profile
@@ -326,10 +333,11 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
 
     @profile
     def _is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> bool:
+        
         return (
             self.compute_reward(achieved_goal, desired_goal, {})
             > -self.config["success_goal_reward"]
-        ) and not self._is_crashed() and any(vehicle.goal.hit for vehicle in self.controlled_vehicles)
+        ) and not self._is_crashed() #and self._is_goal_hit()
 
     @profile
     def _is_terminated(self) -> bool:
@@ -354,6 +362,10 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
     def _is_crashed(self) -> bool:
         """Check if vehicle crashed."""
         return any(vehicle.crashed for vehicle in self.controlled_vehicles)
+    
+    def _is_goal_hit(self) -> bool:
+        """Check if vehicle touched goal."""
+        return any(vehicle.goal.hit for vehicle in self.controlled_vehicles)
 
 
 #class ParkingEnvActionRepeat(ParkingEnv):

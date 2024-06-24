@@ -6,6 +6,9 @@ Created on Mon Jun 10 17:00:06 2024
 
 @author: kimno
 """
+import warnings
+warnings.simplefilter(action='ignore', category=UserWarning)
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 from agent.ppo import PPO
 import gymnasium as gym
@@ -25,6 +28,7 @@ import pandas as pd
 import numpy as np
 from matplotlib.ticker import FormatStrFormatter
 import math
+import random
 
 import matplotlib.pyplot as plt
 
@@ -208,7 +212,7 @@ def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
     # Check manditory parameters were passed
     if args.config is None and config is None and env_params is None and ppo_params is None and experiment_params is None:
         print("ERROR: Please specify environment, PPO and experiment parameters")
-        #sys.exit(1)
+        sys.exit(1)
         
     # Overwrite parameters with cmd arguments if they were specified
     if args.config is not None:
@@ -216,11 +220,12 @@ def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
         
     # Get parameters from config JSON file
     if config is not None:
-        with open(config) as file:
-            params = json.load(file)
+        with open(config, encoding="utf-8") as file:
+            print(f"Loading config {config} ...")
+            params = json.loads(file.read())
             ppo_params = params["ppo"]
             env_params = params["env"]
-            experiment_params = params["experiment"]    
+            experiment_params = params["experiment"]
        
     # Init environment
     env = gym.make('custom-parking-v0')
@@ -229,13 +234,35 @@ def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
     # Init evaluation environments
     eval_envs = {}
     for label, params in experiment_params["eval_envs"].items():
+        
+        # Set the parameters related to the reward function the same as the 
+        # parameters in the training environment
+        params["collision_reward"] = env_params["collision_reward"]
+        params["reward_p"] = env_params["reward_p"]
+        params["collision_reward_factor"] = env_params["collision_reward_factor"]
+        params["success_goal_reward"] = env_params["success_goal_reward"]
+              
         if experiment_params["render_eval"]:
             eval_envs[label] = gym.make('custom-parking-v0', render_mode="rgb_array")
         else:
             eval_envs[label] = gym.make('custom-parking-v0')
         eval_envs[label].configure(params)
+        
+        # Seeding for evaluation purpose
+        eval_envs[label].np_random = np.random.default_rng(experiment_params["seed"])
+        eval_envs[label].action_space.seed(experiment_params["seed"])
+        eval_envs[label].observation_space.seed(experiment_params["seed"])
             
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # Seeding for evaluation purpose
+    env.np_random = np.random.default_rng(experiment_params["seed"])
+    env.action_space.seed(experiment_params["seed"])
+    env.observation_space.seed(experiment_params["seed"])
+    
+    random.seed(experiment_params["seed"])
+    np.random.seed(experiment_params["seed"])
+    torch.manual_seed(experiment_params["seed"])
     
     # Run training and evaluation
     for i in range(experiment_params["n_runs"]):
@@ -246,7 +273,11 @@ def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
         agent.train(env, experiment_params["output_dir"], run_id=i, 
                     eval_frequ=10_000, eval_render=experiment_params["render_eval"], eval_envs=eval_envs)
         
-        #agent.evaluate_recording(env_rec, os.path.join(experiment_params["output_dir"], "train"))
+        agent.evaluate(output_dir=experiment_params["output_dir"], run_id=f"{i}_deterministic",
+                       render=True, eval_envs=eval_envs, deterministic=True)
+        
+        agent.evaluate(output_dir=experiment_params["output_dir"], run_id=f"{i}_stochastic",
+                       render=True, eval_envs=eval_envs, deterministic=False)
     
     if 'plot' in experiment_params.keys() and experiment_params['plot'] is True:
         create_plots(experiment_params)

@@ -771,6 +771,7 @@ class PPO():
     def evaluate(self, output_dir=None, run_id=None, render=False, eval_envs={},
                  deterministic=False):
         
+        print("evaluating")
         for label, env in eval_envs.items():
             if render:
                 video_folder = os.path.join(output_dir, 'evaluate', label, 'videos')
@@ -792,6 +793,14 @@ class PPO():
                 action = action.cpu().numpy()
                 action = action.reshape(action_shape)
                 next_obs, reward, terminated, truncated, info = eval_env.step(action)
+                
+                #filename = os.path.join(output_dir, 'evaluate', label, f"run-{run_id}.csv").replace("/", "\\")
+                #if not os.path.isfile(filename):
+                #    with open(filename, 'w') as f:
+                #        f.write("step;success;crashed;goal;achieved;goal hit;distance;test success\n")
+                #with open(filename, 'a') as f:
+                #    f.write(f"{self.global_step};{info['is_success']};{info['is_crashed']};{info['goal']};{info['achieved']};{info['goal_hit']};{info['reward']};{info['test_success']}".replace("\n", "") + "\n")
+                    
                 total_reward += reward
                 done = terminated or truncated
                 obs = next_obs
@@ -803,3 +812,6 @@ class PPO():
             self.eval_log[label]["truncated"].append(truncated)
     
             eval_env.close()
+            
+            #if label == "vertical" and self.global_step >= 400_000:
+            #    a = 1
