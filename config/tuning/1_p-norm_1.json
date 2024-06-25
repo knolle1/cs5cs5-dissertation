@@ -16,7 +16,8 @@
         "parameters_hardshare" : false,
         "early_stop" : false,
         "cal_total_loss" : false,
-        "max_grad_norm" : 0.5
+        "max_grad_norm" : 0.5,
+        "layer_num" : 3
     },
 	"env": {
 		"parking_angles" : [0, 0],
