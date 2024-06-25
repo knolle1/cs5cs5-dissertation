@@ -80,6 +80,7 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
     }
 
     def __init__(self, config: dict = None, render_mode: Optional[str] = None) -> None:
+        self.global_step = 0
         super().__init__(config, render_mode)
         self.observation_type_parking = None
 
@@ -114,6 +115,8 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
                 "fixed_goal" : None,
                 "reward_p" : 0.5, #1, #0.5,
                 "collision_reward_factor" : 50,
+                "env_change_config" : [],
+                "env_change_frequency" : 100_000
             }
         )
         return config
@@ -157,6 +160,9 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
 
     @profile
     def _reset(self):
+        env_idx = self.global_step // self.config["env_change_frequency"]
+        if env_idx in range(len(self.config["env_change_config"])):
+            self.configure(self.config["env_change_config"][env_idx])
         self._create_road()
         self._create_vehicles()
 
@@ -228,8 +234,9 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
         self.controlled_vehicles = []
         for i in range(self.config["controlled_vehicles"]):
             x0 = (i - self.config["controlled_vehicles"] // 2) * 10 #10
+            x, heading = self.np_random.choice([(x0-35, 2*np.pi), (x0+35, np.pi)])
             vehicle = self.action_type.vehicle_class(
-                self.road, [x0, 0], np.pi, 0  #2 * np.pi * self.np_random.uniform(), 0 
+                self.road, [x, 0], heading, 0  #2 * np.pi * self.np_random.uniform(), 0 
             )
             vehicle.color = VehicleGraphics.EGO_COLOR
             self.road.vehicles.append(vehicle)
@@ -240,6 +247,14 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
         for vehicle in self.controlled_vehicles:
             if self.config["fixed_goal"] == None:
                 lane_index = empty_spots[self.np_random.choice(np.arange(len(empty_spots)))] # Pick random goal
+            elif type(self.config["fixed_goal"]) == list:
+                top_row_idx = np.arange(len(empty_spots)/2)
+                bottom_row_idx = np.arange(len(empty_spots)/2) + len(empty_spots)/2
+                idx = (top_row_idx, bottom_row_idx)
+                goal_set = []
+                for row, spot in self.config["fixed_goal"]:
+                    goal_set.append(int(idx[row][spot]))
+                lane_index = empty_spots[self.np_random.choice(goal_set)] # Pick random goal from specified set
             else:
                 lane_index = empty_spots[self.config["fixed_goal"]]
                 
@@ -366,6 +381,12 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
     def _is_goal_hit(self) -> bool:
         """Check if vehicle touched goal."""
         return any(vehicle.goal.hit for vehicle in self.controlled_vehicles)
+    
+    def step(self, action):
+        obs, reward, terminated, truncated, info = super().step(action)
+        self.global_step += 1
+        
+        return obs, reward, terminated, truncated, info
 
 
 #class ParkingEnvActionRepeat(ParkingEnv):

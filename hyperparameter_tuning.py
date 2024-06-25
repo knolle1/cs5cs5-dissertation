@@ -13,7 +13,13 @@ import pandas as pd
 import os
 
 env_params = {"parking_angles" : [0, 0],
-              "fixed_goal" : 2}
+              "fixed_goal" : [(0, 3), (0, -4), (1, 3), (1, -4)],
+        	  "collision_reward": -10,
+        	  "reward_p" : 0.5,
+           	  "collision_reward_factor" : 50,
+        	  "success_goal_reward" : 0.12,
+        	  "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]
+              }
 experiment_params = {"output_dir" : "./results/hyperparameter_tuning",
                      #"baseline_dir" : "./results/random_vertical",
                      "eval_envs" : {},
@@ -29,23 +35,24 @@ sweep_configuration = {
         'early_stop': [False],
         'cal_total_loss': [True],
         'parameters_hardshare': [False],
-        #'seed': [43201],
+        'seed': [12345],
         'c1': [0.1, 0.5, 1.0],
         'c2': [0, 0.01, 0.1],
         'minibatch_size': [32, 64, 128],
         'kl_threshold':  [0.15],
         'max_grad_norm': [0.5, 1.0],
         'eps_clip': [0.1, 0.2, 0.3],
-        'num_cells': [64, 128, 256], # hidden dimensions
+        'num_cells': [64, 128, 256], # hidden layer size
+        'layer_num': [2, 3, 4], # number of hidden layers
         'max_training_iter': uniform(loc=50_000, scale=250_000),
     }
 
 param_id = 0
-for ppo_params in ParameterSampler(sweep_configuration, n_iter=25):
+for ppo_params in ParameterSampler(sweep_configuration, n_iter=10):
 
     df_params = pd.DataFrame(ppo_params, index=[param_id])
     
-    experiment_params["output_dir"] = f"./results/hyperparameter_tuning/{param_id}"
+    experiment_params["output_dir"] = f"./results/hyperparameter_tuning_2/{param_id}"
     train_eval.main(env_params, ppo_params, experiment_params)
     metrics = ["episode_reward", "success", "crashed", "truncated"]
     for i in range(len(metrics)):

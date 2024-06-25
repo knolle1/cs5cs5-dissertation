@@ -22,13 +22,19 @@ from timeit import default_timer as timer
 # Run random baselines
 # -----------------------------------------------------------------------------
 env = gym.make('custom-parking-v0')
-env.configure({"parking_angles" : [0, 0],
-               "fixed_goal" : 2})
+env_params = {"parking_angles" : [0, 0],
+              "fixed_goal" : [(0, 3), (0, -4), (1, 3), (1, -4)],
+        	  "collision_reward": -10,
+        	  "reward_p" : 0.5,
+           	  "collision_reward_factor" : 50,
+        	  "success_goal_reward" : 0.12,
+        	  "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]
+              }
 print("Running random_vertical")
 for i in range(5):
     print(f"Run {i}")
     start_time = timer()
-    random_rollout(1_000_000, env, "./results/random_vertical", run_id=i)
+    random_rollout(2_000_000, env, "./results/random_vertical", run_id=i)
     end_time = timer()
     print("Time elapsed: " + str(end_time - start_time) + " s")
 
@@ -39,7 +45,7 @@ print("Running random_diagonal-25")
 for i in range(5):
     print(f"Run {i}")
     start_time = timer()
-    random_rollout(1_000_000, env, "./results/random_diagonal-25", run_id = i)
+    random_rollout(2_000_000, env, "./results/random_diagonal-25", run_id = i)
     end_time = timer()
     print("Time elapsed: " + str(end_time - start_time) + " s")
  
@@ -51,7 +57,7 @@ print("Running random_diagonal-50")
 for i in range(5):
     print(f"Run {i}")
     start_time = timer()
-    random_rollout(1_000_000, env, "./results/random_diagonal-50", run_id = i)
+    random_rollout(2_000_000, env, "./results/random_diagonal-50", run_id = i)
     end_time = timer()
     print("Time elapsed: " + str(end_time - start_time) + " s")
 
@@ -62,7 +68,7 @@ print("Running random_parallel")
 for i in range(5):
     print(f"Run {i}")
     start_time = timer()
-    random_rollout(1_000_000, env, "./results/random_parallel", run_id = i)
+    random_rollout(2_000_000, env, "./results/random_parallel", run_id = i)
     end_time = timer()
     print("Time elapsed: " + str(end_time - start_time) + " s")
 """
@@ -70,17 +76,17 @@ for i in range(5):
 # Test and tune parking environment using PPO
 # -----------------------------------------------------------------------------
 
-train_eval.main(config="./config/tuning/0_default.json")
-train_eval.main(config="./config/tuning/1_p-norm_1.json")
-train_eval.main(config="./config/tuning/2_collision-reward_-100.json")
-train_eval.main(config="./config/tuning/3_success-threshold_0.03.json")
-train_eval.main(config="./config/tuning/4_angle-weights_0.05.json")
-train_eval.main(config="./config/tuning/5_hyperparams.json")
+#train_eval.main(config="./config/tuning/0_default.json")
+#train_eval.main(config="./config/tuning/1_p-norm_1.json")
+#train_eval.main(config="./config/tuning/2_collision-reward_-100.json")
+#train_eval.main(config="./config/tuning/3_success-threshold_0.03.json")
+#train_eval.main(config="./config/tuning/4_angle-weights_0.05.json")
+#train_eval.main(config="./config/tuning/5_hyperparams.json")
 
-train_eval.main(config="./config/tuning/6.1_reward-function.json")
-train_eval.main(config="./config/tuning/6.2_reward-function_p-0.5.json")
-train_eval.main(config="./config/tuning/6.3_reward-function_p-0.5_col-rwd--25.json")
-train_eval.main(config="./config/tuning/6.4_reward-function_p-0.5_success-0.12.json")
+#train_eval.main(config="./config/tuning/6.1_reward-function.json")
+#train_eval.main(config="./config/tuning/6.2_reward-function_p-0.5.json")
+#train_eval.main(config="./config/tuning/6.3_reward-function_p-0.5_col-rwd--25.json")
+#train_eval.main(config="./config/tuning/6.4_reward-function_p-0.5_success-0.12.json")
 
 """
 ppo_params = {"gamma" : 0.99,
@@ -267,16 +273,17 @@ env_params = {"parking_angles" : [0, 0],
               }
 experiment_params["output_dir"] = "./results/test_envs/6.5_reward-function_p-0.5_success-0.2_seeded_remove-goalhit"
 train_eval.main(env_params, ppo_params, experiment_params)
-
+"""
 
 # Test vanilla PPO on parking environment
 # -----------------------------------------------------------------------------
 env_params = {"parking_angles" : [0, 0],
-              "fixed_goal" : 2,
-              "collision_reward": -10,
-              "reward_p" : 0.5,
-              "collision_reward_factor" : 50,
-              "success_goal_reward": 0.08
+              "fixed_goal" : [(0, 3), (0, -4), (1, 3), (1, -4)],
+        	  "collision_reward": -10,
+        	  "reward_p" : 0.5,
+           	  "collision_reward_factor" : 50,
+        	  "success_goal_reward" : 0.12,
+        	  "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]
               }
 ppo_params = {"gamma" : 0.99,
               "lamb" : 0.9,
@@ -294,21 +301,17 @@ ppo_params = {"gamma" : 0.99,
               "parameters_hardshare" : False,
               "early_stop" : False,
               "cal_total_loss" : False,
-              "max_grad_norm" : 1
+              "max_grad_norm" : 1,
+              "layer_num" : 2
               }
-experiment_params = {"output_dir" : "./results/test_envs_1e-4_p-0.5_threshold-0.08",
+experiment_params = {"output_dir" : "./results/random_start_goal3",
                      "baseline_dir" : "./results/random_vertical",
                      "eval_envs" : {"vertical" : {"parking_angles" : [0, 0],
-                                                  "fixed_goal" : 2},
-                                    "diagonal-25" : {"parking_angles" : [-25, 25],
-                                                     "fixed_goal" : 2},
-                                    "diagonal-50" : {"parking_angles" : [-50, 50],
-                                                     "fixed_goal" : 2},
-                                    "parallel" : {"parking_angles" : [90, 90],
-                                                  "fixed_goal" : 2},
+                                                  "fixed_goal" : [(0, 3), (0, -4), (1, 3), (1, -4)],
+                                                  },
                                     },
                      "render_eval" : True,
                      "plot" : True,
+                     "seed" : 12345,
                      "n_runs" : 1}
 train_eval.main(env_params, ppo_params, experiment_params)
-"""
