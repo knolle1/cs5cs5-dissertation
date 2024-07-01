@@ -16,3 +16,4 @@ thesis/*.synctex.gz
 thesis/*.toc
 old
 *.pyc
+.venv
