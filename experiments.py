@@ -279,7 +279,7 @@ env_params = {"parking_angles" : [0, 0],
               }
 experiment_params["output_dir"] = "./results/test_envs/6.5_reward-function_p-0.5_success-0.2_seeded_remove-goalhit"
 train_eval.main(env_params, ppo_params, experiment_params)
-"""
+
 
 # Test vanilla PPO on parking environment
 # -----------------------------------------------------------------------------
@@ -321,3 +321,4 @@ experiment_params = {"output_dir" : "./results/random_start_goal3",
                      "seed" : 12345,
                      "n_runs" : 1}
 train_eval.main(env_params, ppo_params, experiment_params)
+"""
