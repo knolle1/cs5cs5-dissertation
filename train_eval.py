@@ -39,7 +39,7 @@ def format_func(value, tick_number=None):
     value = round(value / 1000**num_thousands, 2)
     return f'{value:g}'+' KMGTPEZY'[num_thousands]
 
-def create_plots(experiment_params):
+def create_plots(experiment_params, plot_eval=False):
     # Set font size for all plots
     plt.rcParams['font.size'] = '16'
         
@@ -141,14 +141,46 @@ def create_plots(experiment_params):
     fig.tight_layout()
     fig.savefig(os.path.join(experiment_params["output_dir"], "train", "rolling_metrics.png"))
     
-    # Create rolling averages for deterministic evaluation
-    metrics = ["episode_reward", "success", "crashed", "truncated"]
-    fig, ax = plt.subplots(nrows=len(metrics), figsize=(10, 10))
-    for i in range(len(metrics)):
-        for label in experiment_params["eval_envs"].keys():
+    if plot_eval:
+        # Create rolling averages for deterministic evaluation
+        metrics = ["episode_reward", "success", "crashed", "truncated"]
+        fig, ax = plt.subplots(nrows=len(metrics), figsize=(10, 10))
+        for i in range(len(metrics)):
+            for label in experiment_params["eval_envs"].keys():
+                df_metric = pd.read_csv(os.path.join(experiment_params["output_dir"], 
+                                                     "evaluate", label,
+                                                     f"{metrics[i]}_results.csv")).replace({True: 1, False: 0})
+                df_metric = df_metric.dropna()
+                #if metrics[i] == "episode_reward":
+                #    df_metric = df_metric.drop(columns="step").rolling(100).mean()
+                #else:
+                #    df_metric = df_metric.drop(columns="step").rolling(100).sum()
+                df_metric['mean'] = df_metric[[x for x in df_metric.columns if x.startswith("run_")]].mean(axis=1)
+                df_metric['std'] = df_metric[[x for x in df_metric.columns if x.startswith("run_")]].std(axis=1)
+                
+                ax[i].plot(df_metric["step"], df_metric["mean"], label=label) # plot mean
+                #ax[i].fill_between(df_metric["step"], df_metric["mean"]-df_metric["std"],
+                #                   df_metric["mean"]+df_metric["std"], alpha=0.3) # plot min and max
+                #ax[i].errorbar(df_metric["step"], df_metric["mean"], yerr=df_metric["std"], label=label) # plot mean
+            if metrics[i] == "success":
+                ax[i].plot(df_metric["step"], np.ones(len(df_metric)), label="Ideal")
+            else:
+                ax[i].plot(df_metric["step"], np.zeros(len(df_metric)), label="Ideal")
+            ax[i].set_ylabel(metrics[i])
+            ax[i].xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+        ax[-1].set_xlabel("step")
+        ax[0].legend(loc='upper left', bbox_to_anchor=(1, 1))
+        fig.tight_layout()
+        fig.savefig(os.path.join(experiment_params["output_dir"], "evaluate", "rolling_metrics_compare.png"))
+        
+        # Create rolling averages for deterministic evaluation
+        metrics = ["episode_reward", "success", "crashed", "truncated"]
+        fig, ax = plt.subplots(nrows=len(metrics), figsize=(10, 10))
+        label = "vertical"
+        for i in range(len(metrics)):
             df_metric = pd.read_csv(os.path.join(experiment_params["output_dir"], 
-                                                 "evaluate", label,
-                                                 f"{metrics[i]}_results.csv")).replace({True: 1, False: 0})
+                                                     "evaluate", label,
+                                                     f"{metrics[i]}_results.csv")).replace({True: 1, False: 0})
             df_metric = df_metric.dropna()
             #if metrics[i] == "episode_reward":
             #    df_metric = df_metric.drop(columns="step").rolling(100).mean()
@@ -158,49 +190,18 @@ def create_plots(experiment_params):
             df_metric['std'] = df_metric[[x for x in df_metric.columns if x.startswith("run_")]].std(axis=1)
             
             ax[i].plot(df_metric["step"], df_metric["mean"], label=label) # plot mean
-            #ax[i].fill_between(df_metric["step"], df_metric["mean"]-df_metric["std"],
-            #                   df_metric["mean"]+df_metric["std"], alpha=0.3) # plot min and max
-            #ax[i].errorbar(df_metric["step"], df_metric["mean"], yerr=df_metric["std"], label=label) # plot mean
-        if metrics[i] == "success":
-            ax[i].plot(df_metric["step"], np.ones(len(df_metric)), label="Ideal")
-        else:
-            ax[i].plot(df_metric["step"], np.zeros(len(df_metric)), label="Ideal")
-        ax[i].set_ylabel(metrics[i])
-        ax[i].xaxis.set_major_formatter(plt.FuncFormatter(format_func))
-    ax[-1].set_xlabel("step")
-    ax[0].legend(loc='upper left', bbox_to_anchor=(1, 1))
-    fig.tight_layout()
-    fig.savefig(os.path.join(experiment_params["output_dir"], "evaluate", "rolling_metrics_compare.png"))
-    
-    # Create rolling averages for deterministic evaluation
-    metrics = ["episode_reward", "success", "crashed", "truncated"]
-    fig, ax = plt.subplots(nrows=len(metrics), figsize=(10, 10))
-    label = "vertical"
-    for i in range(len(metrics)):
-        df_metric = pd.read_csv(os.path.join(experiment_params["output_dir"], 
-                                                 "evaluate", label,
-                                                 f"{metrics[i]}_results.csv")).replace({True: 1, False: 0})
-        df_metric = df_metric.dropna()
-        #if metrics[i] == "episode_reward":
-        #    df_metric = df_metric.drop(columns="step").rolling(100).mean()
-        #else:
-        #    df_metric = df_metric.drop(columns="step").rolling(100).sum()
-        df_metric['mean'] = df_metric[[x for x in df_metric.columns if x.startswith("run_")]].mean(axis=1)
-        df_metric['std'] = df_metric[[x for x in df_metric.columns if x.startswith("run_")]].std(axis=1)
-        
-        ax[i].plot(df_metric["step"], df_metric["mean"], label=label) # plot mean
-        ax[i].fill_between(df_metric["step"], df_metric["mean"]-df_metric["std"],
-                               df_metric["mean"]+df_metric["std"], alpha=0.3) # plot min and max
-        if metrics[i] == "success":
-            ax[i].plot(df_metric["step"], np.ones(len(df_metric)), label="Ideal")
-        else:
-            ax[i].plot(df_metric["step"], np.zeros(len(df_metric)), label="Ideal")
-        ax[i].set_ylabel(metrics[i])
-        ax[i].xaxis.set_major_formatter(plt.FuncFormatter(format_func))
-    ax[-1].set_xlabel("step")
-    ax[0].legend(loc='upper left', bbox_to_anchor=(1, 1))
-    fig.tight_layout()
-    fig.savefig(os.path.join(experiment_params["output_dir"], "evaluate", "rolling_metrics.png"))
+            ax[i].fill_between(df_metric["step"], df_metric["mean"]-df_metric["std"],
+                                   df_metric["mean"]+df_metric["std"], alpha=0.3) # plot min and max
+            if metrics[i] == "success":
+                ax[i].plot(df_metric["step"], np.ones(len(df_metric)), label="Ideal")
+            else:
+                ax[i].plot(df_metric["step"], np.zeros(len(df_metric)), label="Ideal")
+            ax[i].set_ylabel(metrics[i])
+            ax[i].xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+        ax[-1].set_xlabel("step")
+        ax[0].legend(loc='upper left', bbox_to_anchor=(1, 1))
+        fig.tight_layout()
+        fig.savefig(os.path.join(experiment_params["output_dir"], "evaluate", "rolling_metrics.png"))
     
 
 def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
@@ -280,7 +281,7 @@ def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
                        render=True, eval_envs=eval_envs, deterministic=False)
     
     if 'plot' in experiment_params.keys() and experiment_params['plot'] is True:
-        create_plots(experiment_params)
+        create_plots(experiment_params, experiment_params["render_eval"])
 
       
 if __name__ == '__main__':

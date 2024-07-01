@@ -24,7 +24,9 @@ experiment_params = {"output_dir" : "./results/hyperparameter_tuning",
                      #"baseline_dir" : "./results/random_vertical",
                      "eval_envs" : {},
                      "render_eval" : False,
-                     "n_runs" : 3}
+                     "plot" : True,
+                     "n_runs" : 0
+                     }
 sweep_configuration = {
         'actor_lr': [1e-4, 3e-4, 1e-3],
         'critic_lr': [1e-4, 3e-4, 1e-3],
@@ -35,7 +37,7 @@ sweep_configuration = {
         'early_stop': [False],
         'cal_total_loss': [True],
         'parameters_hardshare': [False],
-        'seed': [12345],
+        #'seed': [12345],
         'c1': [0.1, 0.5, 1.0],
         'c2': [0, 0.01, 0.1],
         'minibatch_size': [32, 64, 128],
@@ -48,11 +50,14 @@ sweep_configuration = {
     }
 
 param_id = 0
-for ppo_params in ParameterSampler(sweep_configuration, n_iter=10):
+
+experiment_params["seed"] = param_id
+
+for ppo_params in ParameterSampler(sweep_configuration, n_iter=50):
 
     df_params = pd.DataFrame(ppo_params, index=[param_id])
     
-    experiment_params["output_dir"] = f"./results/hyperparameter_tuning_2/{param_id}"
+    experiment_params["output_dir"] = f"./results/hyperparameter_tuning/{param_id}"
     train_eval.main(env_params, ppo_params, experiment_params)
     metrics = ["episode_reward", "success", "crashed", "truncated"]
     for i in range(len(metrics)):

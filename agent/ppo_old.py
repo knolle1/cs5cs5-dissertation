@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jun 25 17:46:08 2024
+Created on Tue May 14 12:18:00 2024
 
 PPO implementation from: https://github.com/realwenlongwang/PPO-Single-File-Notebook-Implementation
 
@@ -86,7 +86,7 @@ class PPOBuffer():
         self.logp_buf[self.idx] = logp
 
         self.idx += 1
-
+        
     def GAE_cal(self, last_val):
         """Calculate the GAE when an episode is ended
 
@@ -112,7 +112,6 @@ class PPOBuffer():
         
         self.path_idx = self.idx
 
-                
     def sample(self, minibatch_size, device):
         """This method sample a list of minibatches from the memory
 
@@ -147,6 +146,7 @@ class PPOBuffer():
         # reset the index
         self.idx, self.path_idx = 0, 0
         
+    
 def layer_init(layer, std=np.sqrt(2)):
     """Init the weights as the stable baseline3 so the performance is comparable.
        But it is not the ideal way to initialise the weights.
@@ -163,29 +163,35 @@ def layer_init(layer, std=np.sqrt(2)):
     return layer
 
 class Actor_Net(nn.Module):
-    def __init__(self, n_observations, n_actions, num_cells, continous_action, log_std_init=0.0, layer_num=3):
-        super(Actor_Net, self).__init__()
+    def __init__(self, n_observations, n_actions, num_cells, continous_action, log_std_init=0.0):
+        super(Actor_Net,self).__init__()
         
+        self.layer1 = layer_init(nn.Linear(n_observations, num_cells))
+        self.layer2 = layer_init(nn.Linear(num_cells, num_cells))
+        self.layer3 = layer_init(nn.Linear(num_cells, n_actions), std=0.01)
+
         self.continous_action = continous_action
         self.action_dim = n_actions
         
-        layers = []
-        input_dim = n_observations
-        for _ in range(layer_num):
-            layers.append(layer_init(nn.Linear(input_dim, num_cells)))
-            layers.append(nn.LayerNorm(num_cells))
-            layers.append(nn.Tanh())
-            input_dim = num_cells
-        layers.append(layer_init(nn.Linear(num_cells, n_actions), std=0.01))
-        
-        self.network = nn.Sequential(*layers)
-
         if self.continous_action:
             log_std = log_std_init * np.ones(self.action_dim, dtype=np.float32)
+            # Add it to the list of parameters
             self.log_std = torch.nn.Parameter(torch.as_tensor(log_std), requires_grad=True)
+            #
+            ### https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/  implementation
+            # self.log_std = nn.Parameter(torch.zeros(1, self.action_dim))  
+
+            ### Stable-baseline3 implementation
+            # self.log_std = nn.Parameter(torch.ones(self.action_dim) * log_std_init, requires_grad=False)      
+
+        
 
     def forward(self, x):
-        return self.network(x)
+        activation1 = F.tanh(self.layer1(x))
+        activation2 = F.tanh(self.layer2(activation1))
+        activation3 = self.layer3(activation2)
+
+        return activation3
     
     def act(self, x):
         if self.continous_action:
@@ -209,81 +215,87 @@ class Actor_Net(nn.Module):
             mu = self.forward(x)
             std = torch.exp(self.log_std)
             dist = Normal(mu, std)
+            # sum term is crucial to reduce dimension, otherwise the ratio = torch.exp(logp - logp_old) will have wrong result with boardcasting
             act_logp = dist.log_prob(act).sum(axis=-1) 
         else:
-            dist = Categorical(F.softmax(self.forward(x), dim=1))
+            dist = Categorical(F.softmax(self.forward(x)))
             act_logp = dist.log_prob(act)
         entropy = dist.entropy()
         
         return entropy, act_logp
     
-   
+    
 class Critic_Net(nn.Module):
-    def __init__(self, n_observations, num_cells, layer_num=3):
-        super(Critic_Net, self).__init__()
-        
-        layers = []
-        input_dim = n_observations
-        for _ in range(layer_num):
-            layers.append(layer_init(nn.Linear(input_dim, num_cells)))
-            layers.append(nn.LayerNorm(num_cells))
-            layers.append(nn.Tanh())
-            input_dim = num_cells
-        layers.append(layer_init(nn.Linear(num_cells, 1), std=1.0))
-        
-        self.network = nn.Sequential(*layers)
+    def __init__(self, n_observations, num_cells):
+        super(Critic_Net,self).__init__()
+        self.layer1 = layer_init(nn.Linear(n_observations, num_cells))
+        self.layer2 = layer_init(nn.Linear(num_cells, num_cells))
+        self.layer3 = layer_init(nn.Linear(num_cells, 1), std=1.0)
 
     def forward(self, x):
-        return self.network(x)
+        activation1 = F.tanh(self.layer1(x))
+        activation2 = F.tanh(self.layer2(activation1))
+        activation3 = self.layer3(activation2)
+
+        return activation3
+    
 
 class Actor_Critic_net(nn.Module):
-    def __init__(self, obs_dim, act_dim, hidden_dim, continous_action, continous_observation, parameters_hardshare, log_std_init=0.0, layer_num=3):
+    def __init__(self, obs_dim, act_dim, hidden_dim, continous_action, parameters_hardshare, log_std_init=0.0):
+
         super(Actor_Critic_net, self).__init__()
 
         self.parameters_hardshare = parameters_hardshare
         self.continous_action = continous_action
-        self.continous_observation = continous_observation
         self.action_dim = act_dim
-        self.obs_dim = obs_dim
 
         if self.parameters_hardshare:
-            layers = []
-            input_dim = obs_dim
-            for _ in range(layer_num):
-                layers.append(layer_init(nn.Linear(input_dim, hidden_dim)))
-                layers.append(nn.LayerNorm(hidden_dim))
-                layers.append(nn.Tanh())
-                input_dim = hidden_dim
+            self.layer1 = layer_init(nn.Linear(obs_dim, hidden_dim))
+            self.layer2 = layer_init(nn.Linear(hidden_dim, hidden_dim))
 
-            self.shared_network = nn.Sequential(*layers)
             self.actor_head = layer_init(nn.Linear(hidden_dim, act_dim), std=0.01)
             self.critic_head = layer_init(nn.Linear(hidden_dim, 1), std=1.0)
-            
             if self.continous_action:
                 log_std = log_std_init * np.ones(self.action_dim, dtype=np.float32)
+                # Add it to the list of parameters
                 self.log_std = torch.nn.Parameter(torch.as_tensor(log_std), requires_grad=True)
-        else:
-            self.actor = Actor_Net(obs_dim, act_dim, hidden_dim, continous_action, log_std_init, layer_num)
-            self.critic = Critic_Net(obs_dim, hidden_dim, layer_num)
+                #
+                ### https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/  implementation
+                # self.log_std = nn.Parameter(torch.zeros(1, self.action_dim))  
 
-    def forward(self, x):
-        if not self.continous_observation:
-            x = F.one_hot(x.long(), num_classes=self.obs_dim).float()
-        if self.parameters_hardshare:
-            x = self.shared_network(x)
-            actor_logits = self.actor_head(x)
-            value = self.critic_head(x)
+                ### Stable-baseline3 implementation
+                # self.log_std = nn.Parameter(torch.ones(self.act_dim) * log_std_init, requires_grad=False) 
+
         else:
-            actor_logits = self.actor(x)
-            value = self.critic(x)
+            self.actor = Actor_Net(obs_dim, act_dim, hidden_dim, continous_action)
+            self.critic = Critic_Net(obs_dim, hidden_dim)
+            
+    def forward(self, x):
+        if self.parameters_hardshare:
+            activation1 = F.tanh(self.layer1(x))
+            activation2 = F.tanh(self.layer2(activation1))
+            actor_logits = self.actor_head(activation2)
+            value = self.critic_head(activation2)
+        else:
+            actor_logits = self.actor.forward(x)
+            value = self.critic.forward(x)
+
         return actor_logits, value
 
     def get_value(self, x):
-        if not self.continous_observation:
-            x = F.one_hot(x.long(), num_classes=self.obs_dim).float()
         return self.critic(x).item()
-
+    
     def act(self, x, deterministic=False):
+        """act with a state
+
+        Args:
+            x (_type_): state from the environment
+
+        Returns:
+            action: action according to the state
+            action_logprob: the log probability to sample the action
+            value: the state value
+        """
         if self.continous_action:
             mu, value = self.forward(x)
             log_std = self.log_std if self.parameters_hardshare else self.actor.log_std
@@ -291,7 +303,7 @@ class Actor_Critic_net(nn.Module):
             dist = Normal(mu, std)
         else:
             actor_logits, value = self.forward(x)
-            log_probs = F.log_softmax(actor_logits, dim=-1)
+            log_probs = F.log_softmax(actor_logits, dim=1)
             dist = Categorical(log_probs)
 
         if deterministic:
@@ -303,28 +315,45 @@ class Actor_Critic_net(nn.Module):
             action_logprob = dist.log_prob(action).sum(axis=-1)
         else:
             action_logprob = dist.log_prob(action)
+        
 
-        return action, action_logprob, value
-
+        return action, action_logprob, value  
+    
     def logprob_ent_from_state_acton(self, x, action):
+        """Return the entropy, log probability of the selected action and state value
+
+        Args:
+            x (_type_): state from the environment
+            action (_type_): action
+
+        Returns:
+            entropy: entropy from the distribution that the action is sampled from
+            action_logprob: the log probability to sample the action
+            value: the state value
+        """
+
         if self.continous_action:
             mu, value = self.forward(x)
             log_std = self.log_std if self.parameters_hardshare else self.actor.log_std
             std = torch.exp(log_std)
             dist = Normal(mu, std)
-            action_logp = dist.log_prob(action).sum(axis=-1)
+            ### sum in log space is equivalent to multiplication in probability space
+            ### Pr(a_1, a_2) = Pr(a_1)*Pr(a_2) given a_1 and a_2 are independent sampled
+            action_logp = dist.log_prob(action).sum(axis=-1) 
         else:
             actor_logits, value = self.forward(x)
-            log_probs = F.log_softmax(actor_logits, dim=-1)
+            log_probs = F.log_softmax(actor_logits, dim=1)
             dist = Categorical(log_probs)
             action_logp = dist.log_prob(action)
         entropy = dist.entropy().sum(axis=-1)
-
+        
         return entropy, action_logp, value
     
+
 class PPO():
+    @profile
     def __init__(self, gamma, lamb, eps_clip, K_epochs, \
-                 observation_space, action_space, num_cells, layer_num,\
+                 observation_space, action_space, num_cells, \
                  actor_lr, critic_lr, memory_size , minibatch_size,\
                  max_training_iter, cal_total_loss, c1, c2, \
                  early_stop, kl_threshold, parameters_hardshare, \
@@ -383,17 +412,12 @@ class PPO():
         else:
             raise AssertionError(f"action space is not valid {action_space}")
 
-        if isinstance(observation_space, Box):
-            self.continous_observation = True
-        elif isinstance(observation_space, Discrete):
-            self.continous_observation = False
-        else:
-            raise AssertionError(f"observation space is not valid {observation_space}")        
 
-        self.actor_critic = Actor_Critic_net(
-            observation_space.shape[0] if self.continous_observation else observation_space.n, 
-            action_space.shape[0] if self.continous_action else action_space.n, 
-            num_cells, self.continous_action, self.continous_observation, parameters_hardshare, layer_num=layer_num).to(device)
+        self.observtion_dim = observation_space.shape[0]
+
+        self.actor_critic = Actor_Critic_net(self.observtion_dim, \
+                               action_space.shape[0] if self.continous_action else action_space.n, \
+                                  num_cells, self.continous_action, parameters_hardshare).to(device)
 
         if parameters_hardshare:
             ### eps=1e-5 follows stable-baseline3
@@ -410,11 +434,30 @@ class PPO():
 
         self.device = device
         
+        """
+        self.episode_log = {'episode_reward' : [],
+                            'success' : [],
+                            'crashed' : [],
+                            'truncated' : []}
+        self.loss_log = {'step' : [],
+                         'actor_loss': [],
+                         'critic_loss' : [],
+                         'entropy_loss' : [],
+                         'KL_approx' : [],
+                         }
+        self.eval_log = {'step' : [],
+                         'episode_reward' : [],
+                         'success' : [],
+                         'crashed' : [],
+                         'truncated' : []}
+        """
+        
         # These two lines monitor the weights and gradients
         #wandb.watch(self.actor_critic.actor, log='all', log_freq=1000, idx=1)
         #wandb.watch(self.actor_critic.critic, log='all', log_freq=1000, idx=2)
         # wandb.watch(self.actor_critic, log='all', log_freq=1000)
 
+    @profile
     def roll_out(self, env, eval_frequ=None, eval_render=False, eval_envs={}, 
                  output_dir=None, run_id=None):
         """rollout for experience
@@ -429,15 +472,15 @@ class PPO():
         action_shape = env.action_space.shape
         # Run the policy for T timestep
         for i in range(self.memory_size):
+            
+            #print("global step", self.global_step)
             with torch.no_grad():
                 obs_tensor = torch.tensor(self._last_obs, \
                                         dtype=torch.float32, device=self.device).unsqueeze(0)
             
                 action, action_logprob, value = self.actor_critic.act(obs_tensor)
-            if self.continous_action:
-                action = action.cpu().numpy().reshape(action_shape)
-            else:
-                action = action.item()
+            
+            action = action.cpu().numpy().reshape(action_shape)
 
             action_logprob = action_logprob.item()
 
@@ -462,8 +505,7 @@ class PPO():
             if terminated or truncated:
                 if truncated:
                     with torch.no_grad():
-                        input_tensor = torch.tensor(next_obs, dtype=torch.float32, device=self.device) if self.continous_observation else torch.tensor(next_obs, dtype=torch.long, device=self.device)
-                        last_value = self.actor_critic.get_value(input_tensor)
+                        last_value = self.actor_critic.get_value(torch.tensor(next_obs, dtype=torch.float32, device=self.device))
                 else:
                     last_value = 0
                 
@@ -487,13 +529,11 @@ class PPO():
                               render=eval_render, eval_envs=eval_envs, deterministic=True)
 
         with torch.no_grad():
-            input_tensor = torch.tensor(next_obs, dtype=torch.float32, device=self.device) if self.continous_observation else torch.tensor(next_obs, dtype=torch.long, device=self.device)
-            last_value = self.actor_critic.get_value(input_tensor)
+            last_value = self.actor_critic.get_value(torch.tensor(next_obs, dtype=torch.float32, device=self.device))
         self.memory.GAE_cal(last_value)
 
-
+    @profile
     def evaluate_recording(self, env, directory, run_id):
-        self.actor_critic.eval()
 
         video_folder = os.path.join(directory, 'videos')
 
@@ -511,10 +551,8 @@ class PPO():
             with torch.no_grad():
                 action, _, _ = self.actor_critic.act(obs_tensor)
 
-            if self.continous_action:
-                action = action.cpu().numpy().reshape(action_shape)
-            else:
-                action = action.item()
+            action = action.cpu().numpy()
+            action = action.reshape(action_shape)
             next_obs, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             obs = next_obs
@@ -528,7 +566,7 @@ class PPO():
         env.close()
         
 
-
+    @profile
     def compute_loss(self, data):
         """compute the loss of state value, policy and entropy
 
@@ -562,6 +600,7 @@ class PPO():
 
         return actor_loss, critic_loss, entropy_loss, kl_apx        
 
+    @profile
     def optimise(self):
 
         entropy_loss_list = []
@@ -611,11 +650,11 @@ class PPO():
 
         self.memory.reset()    
         # Logging, use the same metric as stable-baselines3 to compare performance
-        #with torch.no_grad():
-        #    if self.continous_action:
-        #        mean_std = np.exp(self.actor_critic.actor.log_std.mean().item())
-        #        wandb.log({'mean_std': mean_std})
-        #
+        with torch.no_grad():
+            if self.continous_action:
+                mean_std = np.exp(self.actor_critic.actor.log_std.mean().item())
+                #wandb.log({'mean_std': mean_std})
+
         #wandb.log(
         #    {
         #        'actor_loss': np.mean(actor_loss_list),
@@ -632,11 +671,11 @@ class PPO():
         self.loss_log['entropy_loss'].append(np.mean(entropy_loss_list)),
         self.loss_log['KL_approx'].append(np.mean(kl_approx_list)),
         self.loss_log['step'].append(self.global_step)
+        
 
-                
+    @profile
     def train(self, env, output_dir=None, run_id=None, 
               eval_frequ=10_000, eval_render=False, eval_envs={}, save_results=True):
-        self.actor_critic.train()
         
         # Reset logging dictionaries
         self.episode_log = {'episode_reward' : [],
@@ -656,7 +695,7 @@ class PPO():
                                     'success' : [],
                                     'crashed' : [],
                                     'truncated' : []}
-
+        
         self._last_obs, _ = env.reset()
 
         #for i in tnrange(self.max_training_iter // self.memory_size):
