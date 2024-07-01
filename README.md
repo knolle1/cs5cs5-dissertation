@@ -6,6 +6,11 @@ PPO adapted from implementation by [Wenlong Wang](https://github.com/realwenlong
 
 ## Dependencies
 
-1. Create virtual environment: `conda create -n thesis python=3.10`
-2. Activate virtual environment: `conda activate thesis`
-3. Install dependencies: `pip install -r requirements.txt`
+1. Create and activate virtual environment:
+	- With conda:
+		- `conda create -n thesis python=3.10`
+		- `conda activate thesis`
+	- Alternatively with venv:
+		- `python -m venv .venv`
+		- `source .venv/bin/activate`
+2. Install dependencies: `pip install -r requirements.txt`
