@@ -11,6 +11,7 @@ import train_eval
 
 import pandas as pd
 import os
+import argparse
 
 env_params = {"parking_angles" : [0, 0],
               "fixed_goal" : [(0, 3), (0, -4), (1, 3), (1, -4)],
@@ -25,7 +26,7 @@ experiment_params = {"output_dir" : "./results/hyperparameter_tuning",
                      "eval_envs" : {},
                      "render_eval" : False,
                      "plot" : True,
-                     "n_runs" : 0
+                     "n_runs" : 3
                      }
 sweep_configuration = {
         'actor_lr': [1e-4, 3e-4, 1e-3],
@@ -49,32 +50,50 @@ sweep_configuration = {
         'max_training_iter': uniform(loc=50_000, scale=250_000),
     }
 
-param_id = 0
-
-experiment_params["seed"] = param_id
-
-for ppo_params in ParameterSampler(sweep_configuration, n_iter=50):
-
-    df_params = pd.DataFrame(ppo_params, index=[param_id])
+def main(param_id=0, n_iter=50, folderpath="./results/hyperparameter_tuning"):
     
-    experiment_params["output_dir"] = f"./results/hyperparameter_tuning/{param_id}"
-    train_eval.main(env_params, ppo_params, experiment_params)
-    metrics = ["episode_reward", "success", "crashed", "truncated"]
-    for i in range(len(metrics)):
-        df_metric = pd.read_csv(f"./results/hyperparameter_tuning/{param_id}/train/{metrics[i]}_results.csv")
-        df_metric = df_metric.replace({True: 1, False: 0})
-        df_metric = df_metric.dropna()
-        if metrics[i] == "episode_reward":
-            df_metric = df_metric.drop(columns="episode").rolling(100).mean()
-        else:
-            df_metric = df_metric.drop(columns="episode").rolling(100).sum()
-        df_metric['mean'] = df_metric[[x for x in df_metric.columns if x.startswith("run_")]].mean(axis=1)
-        df_metric['std'] = df_metric[[x for x in df_metric.columns if x.startswith("run_")]].std(axis=1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--start', help='id to start with', type=int)
+    parser.add_argument('--n-iter', help='number of iterations', type=int)
+    parser.add_argument('--output', help='path to output folder', type=str)
+    args = parser.parse_args()
+
+    if args.start is not None:
+        param_id = args.start
+    
+    if args.start is not None:
+        n_iter = args.n_iter
+            
+    if args.start is not None:
+        folderpath = args.output
+    
+    print(f"start id: {param_id}, n_iter: {n_iter}, output path: {folderpath}")
+    experiment_params["seed"] = param_id
+    for ppo_params in ParameterSampler(sweep_configuration, n_iter=n_iter):
+    
+        df_params = pd.DataFrame(ppo_params, index=[param_id])
         
-        df_params[f"{metrics[i]}_mean"] = df_metric["mean"].iloc[-1]
-        df_params[f"{metrics[i]}_std"] = df_metric["std"].iloc[-1]
-        
-    path = f"./results/hyperparameter_tuning/results.csv"
-    df_params.to_csv(path, mode='a', header=not os.path.exists(path))
-        
-    param_id += 1
+        experiment_params["output_dir"] = f"{folderpath}/{param_id}"
+        train_eval.main(env_params, ppo_params, experiment_params)
+        metrics = ["episode_reward", "success", "crashed", "truncated"]
+        for i in range(len(metrics)):
+            df_metric = pd.read_csv(f"{folderpath}/{param_id}/train/{metrics[i]}_results.csv")
+            df_metric = df_metric.replace({True: 1, False: 0})
+            df_metric = df_metric.dropna()
+            if metrics[i] == "episode_reward":
+                df_metric = df_metric.drop(columns="episode").rolling(100).mean()
+            else:
+                df_metric = df_metric.drop(columns="episode").rolling(100).sum()
+            df_metric['mean'] = df_metric[[x for x in df_metric.columns if x.startswith("run_")]].mean(axis=1)
+            df_metric['std'] = df_metric[[x for x in df_metric.columns if x.startswith("run_")]].std(axis=1)
+            
+            df_params[f"{metrics[i]}_mean"] = df_metric["mean"].iloc[-1]
+            df_params[f"{metrics[i]}_std"] = df_metric["std"].iloc[-1]
+            
+        path = f"{folderpath}/results.csv"
+        df_params.to_csv(path, mode='a', header=not os.path.exists(path))
+            
+        param_id += 1
+    
+if __name__ == '__main__':
+    main()
