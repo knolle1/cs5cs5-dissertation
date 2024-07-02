@@ -208,7 +208,7 @@ def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help='JSON file with environment, PPO and experiment parameters', type=str)
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
 
     # Check manditory parameters were passed
     if args.config is None and config is None and env_params is None and ppo_params is None and experiment_params is None:

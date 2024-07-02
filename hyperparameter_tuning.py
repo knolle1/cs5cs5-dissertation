@@ -56,7 +56,7 @@ def main(param_id=0, n_iter=50, folderpath="./results/hyperparameter_tuning"):
     parser.add_argument('--start', help='id to start with', type=int)
     parser.add_argument('--n-iter', help='number of iterations', type=int)
     parser.add_argument('--output', help='path to output folder', type=str)
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
 
     if args.start is not None:
         param_id = args.start
