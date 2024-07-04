@@ -1,23 +1,23 @@
 {
     "ppo": {
 		"gamma" : 0.99,
-        "lamb" : 0.95,
+        "lamb" : 0.9,
         "eps_clip" : 0.1,
         "max_training_iter" : 500000,
-        "K_epochs" : 10,
+        "K_epochs" : 20,
         "num_cells" : 64,
-        "actor_lr" : 3e-4,
-        "critic_lr" : 1e-4,
+        "actor_lr" : 1e-4,
+        "critic_lr" : 3e-4,
         "memory_size" : 2048,
         "minibatch_size" : 64,
-        "c1" : 1,
+        "c1" : 0.1,
         "c2" : 0.01,
         "kl_threshold" : 0.15,
         "parameters_hardshare" : false,
         "early_stop" : false,
-        "cal_total_loss" : false,
+        "cal_total_loss" : true,
         "max_grad_norm" : 0.5,
-        "layer_num" : 2
+        "layer_num" : 3
     },
 	"env": {
 		"parking_angles" : [-50, 50],
