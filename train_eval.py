@@ -176,7 +176,10 @@ def create_plots(experiment_params, plot_eval=False):
         # Create rolling averages for deterministic evaluation
         metrics = ["episode_reward", "success", "crashed", "truncated"]
         fig, ax = plt.subplots(nrows=len(metrics), figsize=(10, 10))
-        label = "vertical"
+        if 'training_label' in experiment_params.keys() and experiment_params['training_label'] is not None:
+            label = experiment_params['training_label']
+        else:
+            label = "vertical"
         for i in range(len(metrics)):
             df_metric = pd.read_csv(os.path.join(experiment_params["output_dir"], 
                                                      "evaluate", label,

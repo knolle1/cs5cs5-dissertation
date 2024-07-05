@@ -31,6 +31,7 @@
 	"experiment": {
 		"output_dir" : "./results/baselines/single_diagonal-50",
 		"baseline_dir" : "./results/random_diagonal-50",
+		"training_label" : "diagonal-50",
 		"eval_envs" : {
 			"vertical" : {
 				"parking_angles" : [0, 0],

@@ -88,11 +88,15 @@ for i in range(5):
 #train_eval.main(config="./config/tuning/6.3_reward-function_p-0.5_col-rwd--25.json")
 #train_eval.main(config="./config/tuning/6.4_reward-function_p-0.5_success-0.12.json")
 
-train_eval.main(config="./config/tuning/7_hyperparameters_id-3.json")
-train_eval.main(config="./config/tuning/7_hyperparameters_id-6.json")
-train_eval.main(config="./config/tuning/7_hyperparameters_id-19.json")
-train_eval.main(config="./config/tuning/7_hyperparameters_id-26.json")
-train_eval.main(config="./config/tuning/7_hyperparameters_id-49.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-3.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-6.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-19.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-26.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-49.json")
+
+train_eval.main(config="./config/baseline/single_diagonal-25.json")
+train_eval.main(config="./config/baseline/single_diagonal-50.json")
+train_eval.main(config="./config/baseline/single_parallel.json")
 
 """
 ppo_params = {"gamma" : 0.99,
