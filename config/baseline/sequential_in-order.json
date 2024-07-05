@@ -31,7 +31,7 @@
                                {"parking_angles" : [-25, 25]},
 							   {"parking_angles" : [-50, 50]},
 							   {"parking_angles" : [90, 90]}],
-        "env_change_frequency" : 500000}
+        "env_change_frequency" : 500000
 	},
 	"experiment": {
 		"output_dir" : "./results/baselines/sequential_in-order",
