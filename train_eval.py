@@ -271,6 +271,10 @@ def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
     # Run training and evaluation
     for i in range(experiment_params["n_runs"]):
         print(f"Run {i}")
+        
+        # Reset global step counter for switching parking angle to 0
+        env.global_step = 0
+        
         agent = PPO(**ppo_params, device=device, observation_space=env.observation_space, 
                      action_space=env.action_space)
         
