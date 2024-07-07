@@ -14,8 +14,10 @@
 #python train_eval.py --config ./config/tuning/7_hyperparameters_id-69.json &
 #python train_eval.py --config ./config/tuning/7_hyperparameters_id-78.json &
 #python train_eval.py --config ./config/tuning/7_hyperparameters_id-99.json &
-python train_eval.py --config ./config/baseline/single_vertical.json &
-python train_eval.py --config ./config/baseline/single_diagonal-25.json &
-python train_eval.py --config ./config/baseline/single_diagonal-50.json &
-python train_eval.py --config ./config/baseline/single_parallel.json &
+#python train_eval.py --config ./config/baseline/single_vertical.json &
+#python train_eval.py --config ./config/baseline/single_diagonal-25.json &
+#python train_eval.py --config ./config/baseline/single_diagonal-50.json &
+#python train_eval.py --config ./config/baseline/single_parallel.json &
+python train_eval.py --config ./config/baseline/sequential_in-order.json &
+python train_eval.py --config ./config/baseline/sequential_reverse-order.json &
 wait
