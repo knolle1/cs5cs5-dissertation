@@ -1,0 +1,45 @@
+{
+    "ppo": {
+		"gamma" : 0.99,
+        "lamb" : 0.95,
+        "eps_clip" : 0.2,
+        "max_training_iter" : 500000,
+        "K_epochs" : 10,
+        "num_cells" : 64,
+        "actor_lr" : 1e-4,
+        "critic_lr" : 1e-4,
+        "memory_size" : 2048,
+        "minibatch_size" : 64,
+        "c1" : 0.5,
+        "c2" : 0,
+        "kl_threshold" : 0.15,
+        "parameters_hardshare" : false,
+        "early_stop" : false,
+        "cal_total_loss" : false,
+        "max_grad_norm" : 0.5,
+        "layer_num" : 3
+    },
+	"env": {
+		"parking_angles" : [0, 0],
+		"fixed_goal" : 2,
+		"collision_reward": -5,
+		"reward_p" : 1,
+		"collision_reward_factor" : 0,
+		"success_goal_reward" : 0.12,
+		"reward_weights": [1, 0.3, 0, 0, 0.02, 0.02]
+	},
+	"experiment": {
+		"output_dir" : "./results/test_envs/1_p-norm_1",
+		"baseline_dir" : "./results/random_vertical",
+		"eval_envs" : {
+			"vertical" : {
+				"parking_angles" : [0, 0],
+				"fixed_goal" : 2
+			}
+		},
+		"render_eval" : true,
+		"plot" : true,
+		"seed" : 12345,
+		"n_runs" : 3
+	}
+}
