@@ -176,7 +176,10 @@ def create_plots(experiment_params, plot_eval=False):
         # Create rolling averages for deterministic evaluation
         metrics = ["episode_reward", "success", "crashed", "truncated"]
         fig, ax = plt.subplots(nrows=len(metrics), figsize=(10, 10))
-        label = "vertical"
+        if 'training_label' in experiment_params.keys() and experiment_params['training_label'] is not None:
+            label = experiment_params['training_label']
+        else:
+            label = "vertical"
         for i in range(len(metrics)):
             df_metric = pd.read_csv(os.path.join(experiment_params["output_dir"], 
                                                      "evaluate", label,
@@ -208,7 +211,7 @@ def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help='JSON file with environment, PPO and experiment parameters', type=str)
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
 
     # Check manditory parameters were passed
     if args.config is None and config is None and env_params is None and ppo_params is None and experiment_params is None:
@@ -268,6 +271,7 @@ def main(env_params=None, ppo_params=None, experiment_params=None, config=None):
     # Run training and evaluation
     for i in range(experiment_params["n_runs"]):
         print(f"Run {i}")
+        
         agent = PPO(**ppo_params, device=device, observation_space=env.observation_space, 
                      action_space=env.action_space)
         
