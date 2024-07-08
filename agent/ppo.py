@@ -423,7 +423,6 @@ class PPO():
             env (gymnasium.Env): environment from gymnasium
         """
         
-        
         assert self._last_obs is not None, "No previous observation"
         
         action_shape = env.action_space.shape
@@ -657,6 +656,7 @@ class PPO():
                                     'crashed' : [],
                                     'truncated' : []}
 
+        env.reset_global_step()
         self._last_obs, _ = env.reset()
 
         #for i in tnrange(self.max_training_iter // self.memory_size):
