@@ -160,10 +160,11 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
 
     @profile
     def _reset(self):
-        env_idx = self.global_step // self.config["env_change_frequency"]
-        if env_idx in range(len(self.config["env_change_config"])):
-            self.configure(self.config["env_change_config"][env_idx])
-        print(f"global_step: {self.global_step}, env_idx: {env_idx}, parking angles: {self.config['parking_angles']}")
+        if len(self.config["env_change_config"]) > 0:
+            env_idx = (self.global_step // self.config["env_change_frequency"]) % len(self.config["env_change_config"])
+            if env_idx in range(len(self.config["env_change_config"])):
+                self.configure(self.config["env_change_config"][env_idx])
+            #print(f"global_step: {self.global_step}, env_idx: {env_idx}, parking angles: {self.config['parking_angles']}")
         self._create_road()
         self._create_vehicles()
 
