@@ -20,4 +20,5 @@
 #python train_eval.py --config ./config/baseline/single_parallel.json &
 python train_eval.py --config ./config/baseline/sequential_in-order.json &
 python train_eval.py --config ./config/baseline/sequential_reverse-order.json &
+python train_eval.py --config ./config/baseline/interleaved.json &
 wait
