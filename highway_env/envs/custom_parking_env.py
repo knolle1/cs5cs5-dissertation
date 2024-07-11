@@ -385,13 +385,18 @@ class CustomParkingEnv(AbstractEnv, GoalEnv):
         return any(vehicle.goal.hit for vehicle in self.controlled_vehicles)
     
     def step(self, action):
+        """Increment global step counter when taking a step"""
         obs, reward, terminated, truncated, info = super().step(action)
         self.global_step += 1
-        
         return obs, reward, terminated, truncated, info
 
     def reset_global_step(self):
+        """Reset global step counter to start cycling through parking scenarios from the begining"""
         self.global_step = 0
+        
+    def get_task_label(self):
+        """Task defined by parking space angle"""
+        return str(self.config['parking_angles'])
 
 
 #class ParkingEnvActionRepeat(ParkingEnv):
