@@ -328,7 +328,7 @@ class PPO():
                  actor_lr, critic_lr, memory_size , minibatch_size,\
                  max_training_iter, cal_total_loss, c1, c2, \
                  early_stop, kl_threshold, parameters_hardshare, \
-                 max_grad_norm , device, ewc_lambda=0.5, ewc_discount=0.9
+                 max_grad_norm , device, ewc_lambda=0, ewc_discount=0.9
                  ):
         """Init
 
