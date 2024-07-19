@@ -3,7 +3,7 @@
 		"gamma" : 0.99,
         "lamb" : 0.9,
         "eps_clip" : 0.1,
-        "max_training_iter" : 500000,
+        "max_training_iter" : 2000000,
         "K_epochs" : 20,
         "num_cells" : 64,
         "actor_lr" : 1e-4,
@@ -26,7 +26,12 @@
 		"reward_p" : 0.5,
 		"collision_reward_factor" : 50,
 		"success_goal_reward" : 0.12,
-		"reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]
+		"reward_weights": [1, 0.3, 0, 0, 0.05, 0.05],
+		"env_change_config" : [{"parking_angles" : [0, 0]},
+                               {"parking_angles" : [-25, 25]},
+							   {"parking_angles" : [-50, 50]},
+							   {"parking_angles" : [90, 90]}],
+        "env_change_frequency" : 500000
 	},
 	"experiment": {
 		"output_dir" : "./results/ewc_test",
