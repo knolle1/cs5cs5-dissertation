@@ -578,6 +578,29 @@ class PPO():
         critic_loss_list = []
         kl_approx_list = []
         ewc_penalty_list = []
+
+        if self.ewc_lambda > 0:
+            # Compute Fisher information for EWC loss
+            data = self.memory.sample(1, self.device)
+            fisher = {n: torch.zeros_like(p).to(p.device) for n, p in 
+                          self.actor_critic.actor.named_parameters()} 
+            for d in data:
+                self.actor_critic_opt.zero_grad()
+                actor_loss, _, _, _ = self.compute_loss(d)
+                actor_loss.backward()
+                
+                for n, p in self.actor_critic.actor.named_parameters():
+                    if p.grad is not None:
+                        fisher[n] += p.grad.data.clone().pow(2) / len(data)
+            
+            # Update EWC importance
+            with torch.no_grad():
+                for n, imp in self.ewc_importance.items():
+                    self.ewc_importance[n] = self.ewc_discount * imp + fisher[n]
+            
+            # Update saved optimised parameters
+            self.ewc_saved_params = {n: p.data.clone() for n, p in 
+                                     self.actor_critic.actor.named_parameters()}
         
         # for _ in tnrange(self.K_epochs, desc=f"epochs", position=1, leave=False):
         for _ in range(self.K_epochs):
@@ -630,28 +653,6 @@ class PPO():
                     self.actor_critic_opt.step()
                     
         if self.ewc_lambda > 0:
-            # Compute Fisher information for EWC loss
-            data = self.memory.sample(1, self.device)
-            fisher = {n: torch.zeros_like(p).to(p.device) for n, p in 
-                          self.actor_critic.actor.named_parameters()} 
-            for d in data:
-                self.actor_critic_opt.zero_grad()
-                actor_loss, _, _, _ = self.compute_loss(d)
-                actor_loss.backward()
-                
-                for n, p in self.actor_critic.actor.named_parameters():
-                    if p.grad is not None:
-                        fisher[n] += p.grad.data.clone().pow(2) / len(data)
-            
-            # Update EWC importance
-            with torch.no_grad():
-                for n, imp in self.ewc_importance.items():
-                    self.ewc_importance[n] = self.ewc_discount * imp + fisher[n]
-            
-            # Update saved optimised parameters
-            self.ewc_saved_params = {n: p.data.clone() for n, p in 
-                                     self.actor_critic.actor.named_parameters()}
-            
             self.loss_log['ewc_penalty'].append(np.mean(ewc_penalty_list))
         
         
