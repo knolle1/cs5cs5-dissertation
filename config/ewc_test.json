@@ -57,6 +57,6 @@
 		"render_eval" : true,
 		"plot" : true,
 		"seed" : 12345,
-		"n_runs" : 0
+		"n_runs" : 1
 	}
 }
