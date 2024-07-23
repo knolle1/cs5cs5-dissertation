@@ -618,8 +618,8 @@ class PPO():
                 kl_approx_list.append(kl_apx.item())
                 
                 # Calculate EWC penalty
+                ewc_penalty = torch.tensor(0).float().to(self.device)
                 if self.ewc_lambda > 0:
-                    ewc_penalty = torch.tensor(0).float().to(self.device)
                     for n, p in self.actor_critic.actor.named_parameters():
                         ewc_penalty += (self.ewc_importance[n] * (p - self.ewc_saved_params[n]).pow(2)).sum()
                     ewc_penalty_list.append(ewc_penalty.item())
@@ -651,10 +651,6 @@ class PPO():
                     # Used by stable-baseline3, maybe more important for RNN
                     torch.nn.utils.clip_grad_norm_(self.actor_critic.parameters(), self.max_grad_norm)
                     self.actor_critic_opt.step()
-                    
-        if self.ewc_lambda > 0:
-            self.loss_log['ewc_penalty'].append(np.mean(ewc_penalty_list))
-        
         
         self.memory.reset()    
         # Logging, use the same metric as stable-baselines3 to compare performance
@@ -679,6 +675,7 @@ class PPO():
         self.loss_log['entropy_loss'].append(np.mean(entropy_loss_list)),
         self.loss_log['KL_approx'].append(np.mean(kl_approx_list)),
         self.loss_log['step'].append(self.global_step)
+        self.loss_log['ewc_penalty'].append(np.mean(ewc_penalty_list))
 
                 
     def train(self, env, output_dir=None, run_id=None, 
