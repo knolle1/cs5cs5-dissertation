@@ -328,7 +328,7 @@ class PPO():
                  actor_lr, critic_lr, memory_size , minibatch_size,\
                  max_training_iter, cal_total_loss, c1, c2, \
                  early_stop, kl_threshold, parameters_hardshare, \
-                 max_grad_norm , device
+                 max_grad_norm , device, ewc_lambda=0, ewc_discount=0.9
                  ):
         """Init
 
@@ -348,6 +348,8 @@ class PPO():
             kl_threshold (float): approx kl divergence, use for early stop
             parameters_hardshare (bool): whether to share the first two layers of actor and critic
             device (_type_): tf device
+            ewc_lambda (float) : weight of EWC penalty
+            ewc_discount (float) : discount factor for updating online EWC
 
         """
         self.gamma = gamma
@@ -409,6 +411,14 @@ class PPO():
         self.memory = PPOBuffer(observation_space.shape, action_space.shape, memory_size, gamma, lamb)
 
         self.device = device
+        
+        # Init EWC variables
+        self.ewc_lambda = ewc_lambda
+        self.ewc_discount = ewc_discount
+        self.ewc_saved_params = {n: p.data.clone() for n, p in 
+                                 self.actor_critic.actor.named_parameters()}
+        self.ewc_importance = {n: torch.zeros_like(p).to(p.device) for n, p in 
+                               self.actor_critic.actor.named_parameters()}
         
         # These two lines monitor the weights and gradients
         #wandb.watch(self.actor_critic.actor, log='all', log_freq=1000, idx=1)
@@ -567,6 +577,30 @@ class PPO():
         actor_loss_list = []
         critic_loss_list = []
         kl_approx_list = []
+        ewc_penalty_list = []
+
+        if self.ewc_lambda > 0:
+            # Compute Fisher information for EWC loss
+            data = self.memory.sample(1, self.device)
+            fisher = {n: torch.zeros_like(p).to(p.device) for n, p in 
+                          self.actor_critic.actor.named_parameters()} 
+            for d in data:
+                self.actor_critic_opt.zero_grad()
+                actor_loss, _, _, _ = self.compute_loss(d)
+                actor_loss.backward()
+                
+                for n, p in self.actor_critic.actor.named_parameters():
+                    if p.grad is not None:
+                        fisher[n] += p.grad.data.clone().pow(2) / len(data)
+            
+            # Update EWC importance
+            with torch.no_grad():
+                for n, imp in self.ewc_importance.items():
+                    self.ewc_importance[n] = self.ewc_discount * imp + fisher[n]
+            
+            # Update saved optimised parameters
+            self.ewc_saved_params = {n: p.data.clone() for n, p in 
+                                     self.actor_critic.actor.named_parameters()}
         
         # for _ in tnrange(self.K_epochs, desc=f"epochs", position=1, leave=False):
         for _ in range(self.K_epochs):
@@ -582,9 +616,19 @@ class PPO():
                 actor_loss_list.append(actor_loss.item())
                 critic_loss_list.append(critic_loss.item())
                 kl_approx_list.append(kl_apx.item())
+                
+                # Calculate EWC penalty
+                ewc_penalty = torch.tensor(0).float().to(self.device)
+                if self.ewc_lambda > 0:
+                    for n, p in self.actor_critic.actor.named_parameters():
+                        ewc_penalty += (self.ewc_importance[n] * (p - self.ewc_saved_params[n]).pow(2)).sum()
+                    ewc_penalty_list.append(ewc_penalty.item())
 
                 if self.cal_total_loss:
-                    total_loss = actor_loss + self.c1 * critic_loss - self.c2 * entropy_loss
+                    total_loss = (actor_loss + 
+                                  self.c1 * critic_loss - 
+                                  self.c2 * entropy_loss + 
+                                  self.ewc_lambda * ewc_penalty)
 
                 ### If this update is too big, early stop and try next minibatch
                 if self.early_stop and kl_apx > self.kl_threshold:
@@ -607,7 +651,7 @@ class PPO():
                     # Used by stable-baseline3, maybe more important for RNN
                     torch.nn.utils.clip_grad_norm_(self.actor_critic.parameters(), self.max_grad_norm)
                     self.actor_critic_opt.step()
-
+        
         self.memory.reset()    
         # Logging, use the same metric as stable-baselines3 to compare performance
         #with torch.no_grad():
@@ -631,6 +675,7 @@ class PPO():
         self.loss_log['entropy_loss'].append(np.mean(entropy_loss_list)),
         self.loss_log['KL_approx'].append(np.mean(kl_approx_list)),
         self.loss_log['step'].append(self.global_step)
+        self.loss_log['ewc_penalty'].append(np.mean(ewc_penalty_list))
 
                 
     def train(self, env, output_dir=None, run_id=None, 
@@ -647,6 +692,7 @@ class PPO():
                          'critic_loss' : [],
                          'entropy_loss' : [],
                          'KL_approx' : [],
+                         "ewc_penalty" : [],
                          }
         self.eval_log = {}
         for label in eval_envs.keys():
@@ -676,9 +722,13 @@ class PPO():
                 if not os.path.exists(train_dir):
                     print(f"Creating output directory {train_dir}")
                     os.makedirs(train_dir)
+                    
+                metric_list = ["episode_reward", "success", "crashed", "truncated",
+                               "actor_loss", "critic_loss", "entropy_loss", "KL_approx"]
+                if self.ewc_lambda > 0:
+                    metric_list.append("ewc_penalty")
                 
-                for metric in ["episode_reward", "success", "crashed", "truncated",
-                               "actor_loss", "critic_loss", "entropy_loss", "KL_approx"]:
+                for metric in metric_list:
                     
                     if metric in ["episode_reward", "success", "crashed", "truncated"]:
                         df = pd.DataFrame(self.episode_log)[[metric]]

@@ -28,3 +28,21 @@ for p in [1, 0.5, 0.1]:
 ax.legend()
 ax.set_xlabel("Distance between state and desired goal")
 ax.set_ylabel("Value of reward function")
+
+A = [1, -1]
+epsilon = 0.2
+r = np.arange(2, step=0.01)
+
+for i in range(len(A)):
+    fig, ax = plt.subplots(figsize=(12, 7))
+    
+    L_unclipped = r * A[i]
+    clipped = np.clip(r, 1 - epsilon, 1 + epsilon) * A[i]
+    L_CLIP = np.minimum(r * A[i], np.clip(r, 1 - epsilon, 1 + epsilon) * A[i])
+
+    ax.plot(r, L_CLIP, label=r"$L_{CLIP}$")
+    ax.plot(r, L_unclipped, label=r"$r_t(\theta) A_t$", linestyle=':')
+    ax.plot(r, clipped, label=r"clip($r_t(\theta), 1-\epsilon,1+\epsilon )A_t$", linestyle=':')
+    ax.legend(bbox_to_anchor=(-0.1, 1), loc="upper right")
+    fig.tight_layout()
+    
