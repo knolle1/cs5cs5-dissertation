@@ -24,8 +24,12 @@
 #python train_eval.py --config ./config/ppo-ewc/single_vertical.json &
 #python train_eval.py --config ./config/ppo-ewc/single_diagonal-25.json &
 #python train_eval.py --config ./config/ppo-ewc/single_diagonal-50.json &
-python train_eval.py --config ./config/ppo-ewc/single_parallel.json &
-#python train_eval.py --config ./config/ppo-ewc/sequential_in-order.json &
+#python train_eval.py --config ./config/ppo-ewc/single_parallel.json &
+python train_eval.py --config ./config/ppo-ewc/single_vertical_num_cells-128.json &
+python train_eval.py --config ./config/ppo-ewc/single_vertical_num_cells-256.json &
+python train_eval.py --config ./config/ppo-ewc/sequential_in-order.json &
+python train_eval.py --config ./config/ppo-ewc/sequential_in-order_num_cells-128.json &
+python train_eval.py --config ./config/ppo-ewc/sequential_in-order_num_cells-256.json &
 #python train_eval.py --config ./config/ppo-ewc/single_vertical_ewc_lambda-0.25.json &
 #python train_eval.py --config ./config/ppo-ewc/single_vertical_ewc_lambda-1.json &
 #python train_eval.py --config ./config/ppo-ewc/single_vertical_ewc_lambda-0.9.json &
@@ -38,5 +42,5 @@ python train_eval.py --config ./config/ppo-ewc/single_parallel.json &
 #python train_eval.py --config ./config/ppo-ewc/sequential_in-order_ewc_lambda-0.9.json &
 #python train_eval.py --config ./config/ppo-ewc/sequential_in-order_ewc_lambda-0.25.json &
 #python train_eval.py --config ./config/ppo-ewc/sequential_in-order_ewc_lambda-1.json &
-python train_eval.py --config ./config/ewc_test.json &
+#python train_eval.py --config ./config/ewc_test.json &
 wait

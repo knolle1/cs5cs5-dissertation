@@ -692,9 +692,9 @@ class PPO():
         for i in range(self.max_training_iter // self.memory_size):
             print("Iteration", i)
 
-            if self.ewc_lambda > 0:
-                if (((self.ewc_update_interval >= i*self.memory_size) and 
-                     (self.ewc_update_interval < (i+1)*self.memory_size)) or 
+            if self.ewc_lambda > 0 and self.global_step > 0:
+                if (((self.global_step % self.ewc_update_interval) == 0) or
+                    ((self.global_step % self.ewc_update_interval)+self.memory_size > self.ewc_update_interval) or 
                     (i == ((self.max_training_iter // self.memory_size)-1))
                    ):
                     print("Updateing EWC")
@@ -744,7 +744,7 @@ class PPO():
 
                         # Save importances
                         out_file = open(os.path.join(ewc_dir, f"run_{run_id}_step_{self.global_step}.json"), "w")
-                        print({k: v.tolist() for k, v in self.ewc_importance.items()})
+                        #print({k: v.tolist() for k, v in self.ewc_importance.items()})
                         json.dump({k: v.tolist() for k, v in self.ewc_importance.items()}, out_file)
                         out_file.close()
 

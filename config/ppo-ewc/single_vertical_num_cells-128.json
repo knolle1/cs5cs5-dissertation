@@ -3,7 +3,7 @@
 	"gamma" : 0.99,
         "lamb" : 0.9,
         "eps_clip" : 0.1,
-        "max_training_iter" : 1000000,
+        "max_training_iter" : 500000,
         "K_epochs" : 20,
         "num_cells" : 128,
         "actor_lr" : 1e-4,
@@ -20,7 +20,7 @@
         "layer_num" : 3,
 	"ewc_lambda" : 0.5,
 	"ewc_discount" : 0.9,
-        "ewc_update_interval" : 1000000
+        "ewc_update_interval" : 500000
     },
 	"env": {
 		"parking_angles" : [0, 0],
