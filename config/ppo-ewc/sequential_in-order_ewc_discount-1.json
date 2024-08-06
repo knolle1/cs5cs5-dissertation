@@ -19,7 +19,8 @@
         "max_grad_norm" : 0.5,
         "layer_num" : 3,
 		"ewc_lambda" : 0.5,
-		"ewc_discount" : 1
+		"ewc_discount" : 1,
+	"ewc_update_interval" : 500000
     },
 	"env": {
 		"parking_angles" : [0, 0],
