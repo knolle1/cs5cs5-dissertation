@@ -105,6 +105,9 @@ def plot_training_curve(in_dir, baseline_dir, out_dir):
         ax.plot(range(len(df_metric)), np.zeros(len(df_metric)), label="Ideal")
         ax.set_ylabel("total episode reward")
         ax.set_xlim(xlim)
+        ax.minorticks_on()
+        ax.grid(which="major")
+        ax.grid(which='minor', linestyle=':')
     ax.set_xlabel("episode")
     ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
     fig.tight_layout()
@@ -148,6 +151,9 @@ def plot_outcomes(in_dir, baseline_dir, out_dir):
             ax[i].plot(range(len(df_metric)), np.zeros(len(df_metric)), label="Ideal")
         ax[i].set_ylabel(metrics[i])
         ax[i].set_xlim(xlim)
+        ax[i].minorticks_on()
+        ax[i].grid(which="major")
+        ax[i].grid(which='minor', linestyle=':')
     ax[-1].set_xlabel("episode")
     ax[0].legend(loc='upper left', bbox_to_anchor=(1, 1))
     fig.tight_layout()
@@ -181,6 +187,9 @@ def plot_deterministic_outcomes(in_dir, label, baseline_dir, out_dir):
             ax[i].plot(df_metric["step"], np.zeros(len(df_metric)), label="Ideal")
         ax[i].set_ylabel(metrics[i])
         ax[i].xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+        ax[i].minorticks_on()
+        ax[i].grid(which="major")
+        ax[i].grid(which='minor', linestyle=':')
     ax[-1].set_xlabel("step")
     ax[0].legend(loc='upper left', bbox_to_anchor=(1, 1))
     fig.tight_layout()
@@ -224,8 +233,8 @@ def plot_compare_scenarios(in_dir, out_dir, scenario_labels=[], scenario_interva
     
         if metric == "episode_reward":
             fig.text(0, 0.5, "total episode reward", va='center', rotation='vertical', fontsize=18)
-            ymin, ymax = ax[0].get_ylim()
-            ax[0].set_ylim([-100, ymax])
+            #ymin, ymax = ax[0].get_ylim()
+            #ax[0].set_ylim([-100, ymax])
         else:
             fig.text(0, 0.5, f"{metric}", va='center', rotation='vertical', fontsize=18)
     
@@ -262,9 +271,9 @@ def plot_all(in_dir, baseline_dir, out_dir, label=None, scenario_labels=[], scen
 
 # Single Scenario Training
 plot_all("./results/baselines/single_vertical", "./results/random_vertical", "./plots", label="vertical")
-plot_all("./results/baselines/single_vertical", "./results/random_vertical", "./plots", label="vertical")
-plot_all("./results/baselines/single_vertical", "./results/random_vertical", "./plots", label="vertical")
-plot_all("./results/baselines/single_vertical", "./results/random_vertical", "./plots", label="vertical")
+plot_all("./results/baselines/single_diagonal-25", "./results/random_diagonal-25", "./plots", label="diagonal-25")
+plot_all("./results/baselines/single_diagonal-50", "./results/random_diagonal-50", "./plots", label="diagonal-50")
+plot_all("./results/baselines/single_parallel", "./results/random_parallel", "./plots", label="parallel")
 
 # Sequential training
 plot_all("./results/baselines/sequential_in-order", "./results/random_vertical", "./plots", 
