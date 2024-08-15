@@ -18,43 +18,54 @@ import matplotlib.animation as animation
 import numpy as np
 from timeit import default_timer as timer
 
-"""
 # Run random baselines
 # -----------------------------------------------------------------------------
 env = gym.make('custom-parking-v0')
 env_params = {"parking_angles" : [0, 0],
-              "fixed_goal" : [(0, 3), (0, -4), (1, 3), (1, -4)],
-        	  "collision_reward": -10,
-        	  "reward_p" : 0.5,
-           	  "collision_reward_factor" : 50,
-        	  "success_goal_reward" : 0.12,
-        	  "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]
+        	  "fixed_goal" : [[0, 3], [0, -4], [1, 3], [1, -4]],
+		      "collision_reward": -10,
+		      "reward_p" : 0.5,
+		      "collision_reward_factor" : 50,
+		      "success_goal_reward" : 0.12,
+		      "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]
               }
 print("Running random_vertical")
-for i in range(5):
+for i in range(2,5):
     print(f"Run {i}")
     start_time = timer()
     random_rollout(2_000_000, env, "./results/random_vertical", run_id=i)
     end_time = timer()
     print("Time elapsed: " + str(end_time - start_time) + " s")
-
+"""
 env = gym.make('custom-parking-v0')
 env.configure({"parking_angles" : [-25, 25],
-               "fixed_goal" : 2})
+        	  "fixed_goal" : [[0, 3], [0, -4], [1, 3], [1, -4]],
+		      "collision_reward": -10,
+		      "reward_p" : 0.5,
+		      "collision_reward_factor" : 50,
+		      "success_goal_reward" : 0.12,
+		      "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]
+              })
 print("Running random_diagonal-25")
-for i in range(5):
+for i in range(2,5):
     print(f"Run {i}")
     start_time = timer()
     random_rollout(2_000_000, env, "./results/random_diagonal-25", run_id = i)
     end_time = timer()
     print("Time elapsed: " + str(end_time - start_time) + " s")
- 
+
 
 env = gym.make('custom-parking-v0')
 env.configure({"parking_angles" : [-50, 50],
-               "fixed_goal" : 2})
+        	  "fixed_goal" : [[0, 3], [0, -4], [1, 3], [1, -4]],
+		      "collision_reward": -10,
+		      "reward_p" : 0.5,
+		      "collision_reward_factor" : 50,
+		      "success_goal_reward" : 0.12,
+		      "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]
+              })
 print("Running random_diagonal-50")
-for i in range(5):
+for i in range(2,5):
     print(f"Run {i}")
     start_time = timer()
     random_rollout(2_000_000, env, "./results/random_diagonal-50", run_id = i)
@@ -63,9 +74,14 @@ for i in range(5):
 
 env = gym.make('custom-parking-v0')
 env.configure({"parking_angles" : [90, 90],
-               "fixed_goal" : 2})
+        	  "fixed_goal" : [[0, 3], [0, -4], [1, 3], [1, -4]],
+		      "collision_reward": -10,
+		      "reward_p" : 0.5,
+		      "collision_reward_factor" : 50,
+		      "success_goal_reward" : 0.12,
+		      "reward_weights": [1, 0.3, 0, 0, 0.05, 0.05]})
 print("Running random_parallel")
-for i in range(5):
+for i in range(2,5):
     print(f"Run {i}")
     start_time = timer()
     random_rollout(2_000_000, env, "./results/random_parallel", run_id = i)
@@ -88,11 +104,15 @@ for i in range(5):
 #train_eval.main(config="./config/tuning/6.3_reward-function_p-0.5_col-rwd--25.json")
 #train_eval.main(config="./config/tuning/6.4_reward-function_p-0.5_success-0.12.json")
 
-train_eval.main(config="./config/tuning/7_hyperparameters_id-3.json")
-train_eval.main(config="./config/tuning/7_hyperparameters_id-6.json")
-train_eval.main(config="./config/tuning/7_hyperparameters_id-19.json")
-train_eval.main(config="./config/tuning/7_hyperparameters_id-26.json")
-train_eval.main(config="./config/tuning/7_hyperparameters_id-49.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-3.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-6.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-19.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-26.json")
+#train_eval.main(config="./config/tuning/7_hyperparameters_id-49.json")
+
+#train_eval.main(config="./config/baseline/single_diagonal-25.json")
+#train_eval.main(config="./config/baseline/single_diagonal-50.json")
+#train_eval.main(config="./config/ewc_test.json")
 
 """
 ppo_params = {"gamma" : 0.99,
