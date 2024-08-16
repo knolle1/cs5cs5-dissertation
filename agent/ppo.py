@@ -23,6 +23,7 @@ from gymnasium.wrappers.record_video import RecordVideo
 from gymnasium.wrappers import NormalizeObservation
 import pandas as pd
 import copy 
+import json
 
 from line_profiler import profile
 
@@ -328,7 +329,8 @@ class PPO():
                  actor_lr, critic_lr, memory_size , minibatch_size,\
                  max_training_iter, cal_total_loss, c1, c2, \
                  early_stop, kl_threshold, parameters_hardshare, \
-                 max_grad_norm , device, ewc_lambda=0, ewc_discount=0.9
+                 max_grad_norm , device, ewc_lambda=0, ewc_discount=0.9,
+                 ewc_update_interval = 500_000
                  ):
         """Init
 
@@ -350,6 +352,7 @@ class PPO():
             device (_type_): tf device
             ewc_lambda (float) : weight of EWC penalty
             ewc_discount (float) : discount factor for updating online EWC
+            ewc_update_interval (int) : at which steps the regulariser should be calculated
 
         """
         self.gamma = gamma
@@ -415,6 +418,7 @@ class PPO():
         # Init EWC variables
         self.ewc_lambda = ewc_lambda
         self.ewc_discount = ewc_discount
+        self.ewc_update_interval = ewc_update_interval
         self.ewc_saved_params = {n: p.data.clone() for n, p in 
                                  self.actor_critic.actor.named_parameters()}
         self.ewc_importance = {n: torch.zeros_like(p).to(p.device) for n, p in 
@@ -426,7 +430,7 @@ class PPO():
         # wandb.watch(self.actor_critic, log='all', log_freq=1000)
 
     def roll_out(self, env, eval_frequ=None, eval_render=False, eval_envs={}, 
-                 output_dir=None, run_id=None):
+                 output_dir=None, run_id=None, log=True):
         """rollout for experience
 
         Args:
@@ -460,7 +464,8 @@ class PPO():
 
             next_obs, reward, terminated, truncated, info = env.step(clipped_action)
 
-            self.global_step += 1
+            if log:
+                self.global_step += 1
 
             self.memory.push(self._last_obs, action, reward, value, action_logprob)
 
@@ -482,11 +487,12 @@ class PPO():
                 
                 self.episode_count += 1
 
-                #wandb.log({'episode_reward' : self._episode_reward}, step=self.global_step)
-                self.episode_log["episode_reward"].append(self._episode_reward)
-                self.episode_log["success"].append('is_success' in info.keys() and info['is_success'])
-                self.episode_log["crashed"].append('is_crashed' in info.keys() and info['is_crashed'])
-                self.episode_log["truncated"].append(truncated)
+                if log:
+                    #wandb.log({'episode_reward' : self._episode_reward}, step=self.global_step)
+                    self.episode_log["episode_reward"].append(self._episode_reward)
+                    self.episode_log["success"].append('is_success' in info.keys() and info['is_success'])
+                    self.episode_log["crashed"].append('is_crashed' in info.keys() and info['is_crashed'])
+                    self.episode_log["truncated"].append(truncated)
 
                 self._episode_reward = 0
                 
@@ -579,29 +585,6 @@ class PPO():
         kl_approx_list = []
         ewc_penalty_list = []
 
-        if self.ewc_lambda > 0:
-            # Compute Fisher information for EWC loss
-            data = self.memory.sample(1, self.device)
-            fisher = {n: torch.zeros_like(p).to(p.device) for n, p in 
-                          self.actor_critic.actor.named_parameters()} 
-            for d in data:
-                self.actor_critic_opt.zero_grad()
-                actor_loss, _, _, _ = self.compute_loss(d)
-                actor_loss.backward()
-                
-                for n, p in self.actor_critic.actor.named_parameters():
-                    if p.grad is not None:
-                        fisher[n] += p.grad.data.clone().pow(2) / len(data)
-            
-            # Update EWC importance
-            with torch.no_grad():
-                for n, imp in self.ewc_importance.items():
-                    self.ewc_importance[n] = self.ewc_discount * imp + fisher[n]
-            
-            # Update saved optimised parameters
-            self.ewc_saved_params = {n: p.data.clone() for n, p in 
-                                     self.actor_critic.actor.named_parameters()}
-        
         # for _ in tnrange(self.K_epochs, desc=f"epochs", position=1, leave=False):
         for _ in range(self.K_epochs):
             
@@ -708,6 +691,68 @@ class PPO():
         #for i in tnrange(self.max_training_iter // self.memory_size):
         for i in range(self.max_training_iter // self.memory_size):
             print("Iteration", i)
+
+            if self.ewc_lambda > 0 and self.global_step > 0:
+                if (((self.global_step % self.ewc_update_interval) == 0) or
+                    ((self.global_step % self.ewc_update_interval)+self.memory_size > self.ewc_update_interval) or 
+                    (i == ((self.max_training_iter // self.memory_size)-1))
+                   ):
+                    print("Updateing EWC")
+                    # Roll out experience for current policy
+                    config = env.default_config()
+                    # Set the parameters related to the reward function the same as the env
+                    config["collision_reward"] = env.config["collision_reward"]
+                    config["reward_p"] = env.config["reward_p"]
+                    config["collision_reward_factor"] = env.config["collision_reward_factor"]
+                    config["success_goal_reward"] = env.config["success_goal_reward"]
+                    # Set the parameters related to the parking spaces the same as the env
+                    config["parking_angles"] = env.config["parking_angles"]
+                    config["fixed_goal"] = env.config["fixed_goal"]
+                    # Create copy of envionment for rollout
+                    env_ewc = copy.deepcopy(env)
+                    env_ewc.configure(config)
+                    self.roll_out(env_ewc, log=False)
+    
+                    # Compute Fisher information for EWC loss
+                    data = self.memory.sample(1, self.device)
+                    fisher = {n: torch.zeros_like(p).to(p.device) for n, p in 
+                                  self.actor_critic.actor.named_parameters()} 
+                    for d in data:
+                        self.actor_critic_opt.zero_grad()
+                        actor_loss, _, _, _ = self.compute_loss(d)
+                        actor_loss.backward()
+                        
+                        for n, p in self.actor_critic.actor.named_parameters():
+                            if p.grad is not None:
+                                fisher[n] += p.grad.data.clone().pow(2) / len(data)
+                    
+                    # Update EWC importance
+                    with torch.no_grad():
+                        for n, imp in self.ewc_importance.items():
+                            self.ewc_importance[n] = self.ewc_discount * imp + fisher[n]
+                    
+                    # Update saved optimised parameters
+                    self.ewc_saved_params = {n: p.data.clone() for n, p in 
+                                             self.actor_critic.actor.named_parameters()}
+
+                    if output_dir is not None:
+                        ewc_dir = os.path.join(output_dir, "train", "ewc_importances")
+                        
+                        if not os.path.exists(ewc_dir):
+                            print(f"Creating output directory {ewc_dir}")
+                            os.makedirs(ewc_dir)
+
+                        # Save importances
+                        out_file = open(os.path.join(ewc_dir, f"run_{run_id}_step_{self.global_step}.json"), "w")
+                        #print({k: v.tolist() for k, v in self.ewc_importance.items()})
+                        json.dump({k: v.tolist() for k, v in self.ewc_importance.items()}, out_file)
+                        out_file.close()
+
+                    # Reset original env to avoid problems with rollout
+                    self._last_obs, _ = env.reset()
+                    self._episode_reward = 0
+                    self.memory.reset()  
+                
             self.roll_out(env, eval_frequ=eval_frequ, eval_render=eval_render, 
                           output_dir=output_dir, run_id=run_id, eval_envs=eval_envs)
 

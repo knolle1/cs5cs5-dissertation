@@ -95,6 +95,28 @@ def create_plots(experiment_params, plot_eval=False):
     fig.tight_layout()
     fig.savefig(os.path.join(experiment_params["output_dir"], "train", "KL_approx_results.png"))
     
+    # Create plot for EWC penalty
+    if os.path.isfile(os.path.join(experiment_params["output_dir"], 
+                                         "train", 
+                                         "ewc_penalty_results.csv")):
+        df_results = pd.read_csv(os.path.join(experiment_params["output_dir"], 
+                                             "train", 
+                                             "ewc_penalty_results.csv"))
+        df_results = df_results.dropna()
+        df_results['mean'] = df_results[[x for x in df_results.columns if x.startswith("run_")]].mean(axis=1)
+        df_results['std'] = df_results[[x for x in df_results.columns if x.startswith("run_")]].std(axis=1)
+        
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(df_results["step"], df_results["mean"], label="PPO") # plot mean
+        ax.fill_between(df_results["step"], df_results["mean"]-df_results["std"], 
+                        df_results["mean"]+df_results["std"], alpha=0.3) # plot std dev
+        ax.set_xlabel("step")
+        ax.set_ylabel("EWC penalty")
+        #fig.suptitle("Parking")
+        #ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+        fig.tight_layout()
+        fig.savefig(os.path.join(experiment_params["output_dir"], "train", "ewc_penalty_results.png"))
+    
 
     # Calculate rolling averages
     metrics = ["episode_reward", "success", "crashed", "truncated"]
