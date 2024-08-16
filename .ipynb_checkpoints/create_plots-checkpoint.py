@@ -330,7 +330,7 @@ def plot_all(in_dir, baseline_dir, out_dir, baseline_label="Random", agent_label
     plot_compare_scenarios(in_dir, baseline_dir, out_dir,scenario_labels, scenario_interval, baseline_label=baseline_label, agent_label=agent_label)
     plt.close('all')
 
-"""
+
 plot_ewc_penalty([("./results/ppo-ewc/sequential_in-order_ewc_lambda-0.25", "lambda=0.25"),
                   ("./results/ppo-ewc/sequential_in-order", "lambda=0.5"),
                   ("./results/ppo-ewc/sequential_in-order_ewc_lambda-1", "lambda=1")],
@@ -390,7 +390,7 @@ plot_importance("./results/ppo-ewc/single_parallel", "./plots")
 plot_importance("./results/ppo-ewc/sequential_in-order", "./plots")
 plot_importance("./results/ppo-ewc/sequential_in-order_num_cells-128", "./plots", figsize=(40, 10))
 plot_importance("./results/ppo-ewc/sequential_in-order_num_cells-256", "./plots", figsize=(40, 15))
-"""
+
 plot_importance("./results/ppo-ewc/single_vertical", "./plots", layer="network.0", figsize=(5, 7))
 plot_importance("./results/ppo-ewc/single_diagonal-25", "./plots", layer="network.0", figsize=(5, 7))
 plot_importance("./results/ppo-ewc/single_diagonal-50", "./plots", layer="network.0", figsize=(5, 7))
